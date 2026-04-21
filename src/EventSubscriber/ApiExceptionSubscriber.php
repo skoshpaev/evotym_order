@@ -1,0 +1,60 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\EventSubscriber;
+
+use App\Exception\ApiValidationException;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Event\ExceptionEvent;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Symfony\Component\HttpKernel\KernelEvents;
+
+final class ApiExceptionSubscriber implements EventSubscriberInterface
+{
+    public static function getSubscribedEvents(): array
+    {
+        return [
+            KernelEvents::EXCEPTION => 'onKernelException',
+        ];
+    }
+
+    public function onKernelException(ExceptionEvent $event): void
+    {
+        $request = $event->getRequest();
+
+        if (!str_starts_with($request->getPathInfo(), '/orders')) {
+            return;
+        }
+
+        $throwable = $event->getThrowable();
+
+        if ($throwable instanceof ApiValidationException) {
+            $event->setResponse(new JsonResponse(
+                [
+                    'message' => 'Validation failed.',
+                    'errors' => $throwable->getErrors(),
+                ],
+                Response::HTTP_BAD_REQUEST,
+            ));
+
+            return;
+        }
+
+        if ($throwable instanceof HttpExceptionInterface) {
+            $event->setResponse(new JsonResponse(
+                ['message' => $throwable->getMessage() ?: Response::$statusTexts[$throwable->getStatusCode()]],
+                $throwable->getStatusCode(),
+            ));
+
+            return;
+        }
+
+        $event->setResponse(new JsonResponse(
+            ['message' => 'Internal server error.'],
+            Response::HTTP_INTERNAL_SERVER_ERROR,
+        ));
+    }
+}
