@@ -9,7 +9,7 @@ services:
       COMPOSER_ALLOW_SUPERUSER: "1"
       COMPOSER_CACHE_DIR: /tmp/composer-cache
       GITHUB_TOKEN: "${GITHUB_TOKEN:-}"
-      DATABASE_URL: "mysql://order:order@mysql:3306/order?serverVersion=8.0&charset=utf8mb4"
+      DATABASE_URL: "mysql://order:order@mysql:3306/order?serverVersion=8.0.36&charset=utf8mb4"
     volumes:
       - ./:/workspace/order
       - composer-cache:/tmp/composer-cache
@@ -47,8 +47,26 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
 
+###> doctrine/doctrine-bundle ###
+  database:
+    image: postgres:${POSTGRES_VERSION:-16}-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+      # You should definitely change the password in production
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-!ChangeMe!}
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+    volumes:
+      - database_data:/var/lib/postgresql/data:rw
+      # You may use a bind-mounted host directory instead, so that it is harder to accidentally remove the volume and lose all your data!
+      # - ./docker/db/data:/var/lib/postgresql/data:rw
+###< doctrine/doctrine-bundle ###
+
 volumes:
   composer-cache:
+
+###> doctrine/doctrine-bundle ###
+  database_data:
+###< doctrine/doctrine-bundle ###
   mysql-data:
 
 networks:
