@@ -1,6 +1,6 @@
 FROM composer:2 AS composer
 
-FROM php:8.1-cli-bookworm
+FROM php:8.1-fpm-bookworm
 
 ENV COMPOSER_ALLOW_SUPERUSER=1 \
     COMPOSER_HOME=/tmp/composer \
@@ -31,4 +31,4 @@ RUN chmod +x /usr/local/bin/order-entrypoint \
 WORKDIR /workspace/order
 
 ENTRYPOINT ["order-entrypoint"]
-CMD ["sleep", "infinity"]
+CMD ["php-fpm"]

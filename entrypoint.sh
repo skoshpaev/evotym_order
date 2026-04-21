@@ -43,6 +43,7 @@ can_bootstrap_in_place() {
         ! -name 'Dockerfile' \
         ! -name 'docker-compose.yml' \
         ! -name 'entrypoint.sh' \
+        ! -name 'docker' \
         ! -name '.DS_Store' \
         -print -quit | grep -q .; then
         return 1
@@ -59,12 +60,12 @@ clone_repository_if_needed() {
     tmp_dir="$(mktemp -d)"
     track_tmp_dir "$tmp_dir"
 
-    clone_url="$REPO_SSH_URL"
+    clone_url="$REPO_HTTPS_URL"
     if [ -n "${GITHUB_TOKEN:-}" ]; then
         clone_url="https://x-access-token:${GITHUB_TOKEN}@github.com/skoshpaev/evotym_order.git"
         log "Cloning repository with token authentication"
     else
-        log "Cloning repository over SSH"
+        log "Cloning repository over HTTPS"
     fi
 
     git clone "$clone_url" "$tmp_dir"
@@ -110,6 +111,10 @@ ensure_runtime_directories() {
     if [ ! -d "$PROJECT_DIR/templates" ]; then
         mkdir -p "$PROJECT_DIR/templates"
         touch "$PROJECT_DIR/templates/.gitkeep"
+    fi
+
+    if [ ! -d "$PROJECT_DIR/docker/nginx" ]; then
+        mkdir -p "$PROJECT_DIR/docker/nginx"
     fi
 
     chmod -R ug+rwX "$PROJECT_DIR/var" || true
