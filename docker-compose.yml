@@ -17,6 +17,9 @@ services:
       mysql:
         condition: service_healthy
     command: ["php-fpm"]
+    networks:
+      - default
+      - shared
 
   nginx:
     image: nginx:1.27-alpine
@@ -47,3 +50,7 @@ services:
 volumes:
   composer-cache:
   mysql-data:
+
+networks:
+  shared:
+    name: evotym_shared
