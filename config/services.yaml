@@ -34,5 +34,11 @@ services:
         tags:
             - { name: controller.argument_value_resolver, priority: 200 }
 
+    App\Service\OrderServiceInterface:
+        alias: App\Service\OrderService
+
+    App\Service\RabbitMQServiceInterface:
+        alias: App\Service\RabbitMQService
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

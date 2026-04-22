@@ -1,0 +1,52 @@
+framework:
+    messenger:
+        transports:
+            product_updated:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                serializer: App\Messenger\EventMessageSerializer
+                failure_transport: product_updated_failed
+                retry_strategy:
+                    max_retries: 5
+                    delay: 1000
+                    multiplier: 2
+                    max_delay: 30000
+                options:
+                    auto_setup: true
+                    confirm_timeout: 2
+                    exchange:
+                        name: product.events
+                        type: direct
+                    queues:
+                        product.updated:
+                            binding_keys: ['product.updated']
+
+            product_updated_failed:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                serializer: App\Messenger\EventMessageSerializer
+                options:
+                    auto_setup: true
+                    confirm_timeout: 2
+                    exchange:
+                        name: product.events.dlq
+                        type: direct
+                        default_publish_routing_key: product.updated.failed
+                    queues:
+                        product.updated.failed:
+                            binding_keys: ['product.updated.failed']
+
+            order_created:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                serializer: App\Messenger\EventMessageSerializer
+                options:
+                    auto_setup: true
+                    confirm_timeout: 2
+                    exchange:
+                        name: order.events
+                        type: direct
+                        default_publish_routing_key: order.created
+                    queues:
+                        order.created:
+                            binding_keys: ['order.created']
+
+        routing:
+            App\Message\OrderCreatedMessage: order_created

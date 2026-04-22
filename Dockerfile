@@ -11,14 +11,20 @@ RUN apt-get update \
         ca-certificates \
         git \
         libicu-dev \
+        librabbitmq-dev \
+        libssh-dev \
         libzip-dev \
         unzip \
         zip \
+    && pecl install amqp \
+    && docker-php-ext-enable amqp \
     && docker-php-ext-install -j"$(nproc)" \
+        bcmath \
         intl \
         opcache \
         pdo \
         pdo_mysql \
+        sockets \
         zip \
     && rm -rf /var/lib/apt/lists/*
 
