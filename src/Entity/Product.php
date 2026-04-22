@@ -27,6 +27,19 @@ class Product
     #[ORM\Column(type: Types::INTEGER)]
     private int $quantity;
 
+    private function __construct(string $id, string $name, float $price, int $quantity)
+    {
+        $this->id = $id;
+        $this->name = $name;
+        $this->price = self::normalizePrice($price);
+        $this->quantity = $quantity;
+    }
+
+    public static function create(string $id, string $name, float $price, int $quantity): self
+    {
+        return new self($id, $name, $price, $quantity);
+    }
+
     public function getId(): string
     {
         return $this->id;
@@ -54,5 +67,17 @@ class Product
         }
 
         $this->quantity -= $quantity;
+    }
+
+    public function sync(string $name, float $price, int $quantity): void
+    {
+        $this->name = $name;
+        $this->price = self::normalizePrice($price);
+        $this->quantity = $quantity;
+    }
+
+    private static function normalizePrice(float $price): string
+    {
+        return number_format($price, 2, '.', '');
     }
 }

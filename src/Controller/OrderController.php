@@ -8,7 +8,7 @@ use App\Dto\CreateOrderRequestDto;
 use App\Dto\OrderResponseDto;
 use App\Entity\Order;
 use App\Repository\OrderRepository;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Service\OrderServiceInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -19,19 +19,9 @@ final class OrderController
     #[Route('', name: 'order_create', methods: ['POST'])]
     public function create(
         CreateOrderRequestDto $createOrderRequestDto,
-        EntityManagerInterface $entityManager,
+        OrderServiceInterface $orderService,
     ): JsonResponse {
-        $product = $createOrderRequestDto->product;
-        $product->decreaseQuantity($createOrderRequestDto->quantityOrdered);
-
-        $order = Order::create(
-            $product,
-            $createOrderRequestDto->customerName,
-            $createOrderRequestDto->quantityOrdered,
-        );
-
-        $entityManager->persist($order);
-        $entityManager->flush();
+        $order = $orderService->create($createOrderRequestDto);
 
         return new JsonResponse(
             OrderResponseDto::fromEntity($order)->toArray(),
