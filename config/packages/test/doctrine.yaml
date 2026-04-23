@@ -1,0 +1,6 @@
+doctrine:
+    dbal:
+        url: 'sqlite:///:memory:'
+
+    orm:
+        auto_generate_proxy_classes: true
