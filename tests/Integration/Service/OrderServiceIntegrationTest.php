@@ -9,6 +9,7 @@ use App\Entity\Order;
 use App\Entity\Product;
 use App\Message\OrderCreatedMessage;
 use App\Repository\OrderRepository;
+use App\Repository\OutboxMessageRepository;
 use App\Repository\ProductRepository;
 use App\Service\OrderServiceInterface;
 use App\Tests\Integration\DatabaseKernelTestCase;
@@ -34,11 +35,13 @@ final class OrderServiceIntegrationTest extends DatabaseKernelTestCase
 
         $service = static::getContainer()->get(OrderServiceInterface::class);
         $orderRepository = static::getContainer()->get(OrderRepository::class);
+        $outboxRepository = static::getContainer()->get(OutboxMessageRepository::class);
         $productRepository = static::getContainer()->get(ProductRepository::class);
         $transport = $this->getTransport('order_created');
 
         \assert($service instanceof OrderServiceInterface);
         \assert($orderRepository instanceof OrderRepository);
+        \assert($outboxRepository instanceof OutboxMessageRepository);
         \assert($productRepository instanceof ProductRepository);
 
         $order = $service->create(new CreateOrderRequestDto($product, 'John Doe', 2));
@@ -52,6 +55,9 @@ final class OrderServiceIntegrationTest extends DatabaseKernelTestCase
         self::assertSame(Order::STATUS_PROCESSING, $storedOrder->getOrderStatus());
         self::assertSame(5, $storedProduct?->getQuantity());
         self::assertCount(1, $sentMessages);
+        self::assertCount(1, $outboxRepository->findAll());
+        self::assertSame('published', $outboxRepository->findAll()[0]->getStatus());
+        self::assertCount(0, $outboxRepository->findCreatedOrdered());
         self::assertInstanceOf(OrderCreatedMessage::class, $sentMessages[0]->getMessage());
 
         /** @var OrderCreatedMessage $message */

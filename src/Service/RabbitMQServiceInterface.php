@@ -11,5 +11,9 @@ interface RabbitMQServiceInterface
 {
     public function productUpdated(ProductUpdatedMessage $message): void;
 
-    public function orderCreated(OrderCreatedMessage $message): void;
+    public function orderCreated(OrderCreatedMessage $message): string;
+
+    public function publishOutboxMessage(string $eventId): bool;
+
+    public function publishPendingOutbox(): int;
 }

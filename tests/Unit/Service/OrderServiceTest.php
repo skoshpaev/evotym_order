@@ -28,6 +28,7 @@ final class OrderServiceTest extends TestCase
             4,
         );
         $dto = new CreateOrderRequestDto($product, 'John Doe', 2);
+        $eventId = '019dbb30-e0f0-7c26-9cb5-b12b0de9d9eb';
 
         $persistedOrder = null;
 
@@ -51,7 +52,13 @@ final class OrderServiceTest extends TestCase
                     && $message->productId === $product->getId()
                     && $message->quantityOrdered === 2
                     && $message->expectedProductVersion === 4;
-            }));
+            }))
+            ->willReturn($eventId);
+
+        $rabbitMqService
+            ->expects(self::once())
+            ->method('publishOutboxMessage')
+            ->with($eventId);
 
         $order = $service->create($dto);
 

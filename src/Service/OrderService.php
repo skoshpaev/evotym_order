@@ -28,8 +28,7 @@ final class OrderService implements OrderServiceInterface
         );
 
         $this->entityManager->persist($order);
-        $this->entityManager->flush();
-        $this->rabbitMQService->orderCreated(
+        $eventId = $this->rabbitMQService->orderCreated(
             OrderCreatedMessage::create(
                 $order->getId(),
                 $product->getId(),
@@ -37,6 +36,8 @@ final class OrderService implements OrderServiceInterface
                 $product->getVersion(),
             ),
         );
+        $this->entityManager->flush();
+        $this->rabbitMQService->publishOutboxMessage($eventId);
 
         return $order;
     }
