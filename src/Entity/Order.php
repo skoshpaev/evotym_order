@@ -14,6 +14,8 @@ class Order
 {
     public const CUSTOMER_NAME_MAX_LENGTH = 255;
     public const STATUS_PROCESSING = 'Processing';
+    public const STATUS_PROCESSED = 'Processed';
+    public const STATUS_FAILED = 'Failed';
 
     #[ORM\Id]
     #[ORM\Column(length: 36, unique: true)]
@@ -69,5 +71,15 @@ class Order
     public function getOrderStatus(): string
     {
         return $this->orderStatus;
+    }
+
+    public function markProcessed(): void
+    {
+        $this->orderStatus = self::STATUS_PROCESSED;
+    }
+
+    public function markFailed(): void
+    {
+        $this->orderStatus = self::STATUS_FAILED;
     }
 }

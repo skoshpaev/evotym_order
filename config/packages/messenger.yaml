@@ -20,6 +20,39 @@ framework:
                         product.updated:
                             binding_keys: ['product.updated']
 
+            order_processing_status:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                serializer: App\Messenger\EventMessageSerializer
+                failure_transport: order_processing_status_failed
+                retry_strategy:
+                    max_retries: 5
+                    delay: 1000
+                    multiplier: 2
+                    max_delay: 30000
+                options:
+                    auto_setup: true
+                    confirm_timeout: 2
+                    exchange:
+                        name: order.processing.status.events
+                        type: direct
+                    queues:
+                        order.processing.status:
+                            binding_keys: ['order.processing.status']
+
+            order_processing_status_failed:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                serializer: App\Messenger\EventMessageSerializer
+                options:
+                    auto_setup: true
+                    confirm_timeout: 2
+                    exchange:
+                        name: order.processing.status.events.dlq
+                        type: direct
+                        default_publish_routing_key: order.processing.status.failed
+                    queues:
+                        order.processing.status.failed:
+                            binding_keys: ['order.processing.status.failed']
+
             product_updated_failed:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 serializer: App\Messenger\EventMessageSerializer

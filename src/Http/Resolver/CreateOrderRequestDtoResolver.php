@@ -60,12 +60,6 @@ final class CreateOrderRequestDtoResolver implements ValueResolverInterface
             ]);
         }
 
-        if ($payloadDto->quantityOrdered > $product->getQuantity()) {
-            throw ApiValidationException::fromErrors([
-                'quantityOrdered' => ['Ordered quantity exceeds available stock.'],
-            ]);
-        }
-
         yield new CreateOrderRequestDto($product, $payloadDto->customerName, $payloadDto->quantityOrdered);
     }
 
