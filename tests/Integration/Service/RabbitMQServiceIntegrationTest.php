@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\Service;
 
+use App\Message\OrderCreatedMessage;
 use App\Message\ProductUpdatedMessage;
+use App\Repository\OutboxMessageRepository;
 use App\Repository\ProductRepository;
 use App\Service\RabbitMQServiceInterface;
 use App\Tests\Integration\DatabaseKernelTestCase;
@@ -14,6 +16,34 @@ final class RabbitMQServiceIntegrationTest extends DatabaseKernelTestCase
     protected function transportNames(): array
     {
         return ['order_created', 'product_updated', 'product_updated_failed', 'order_processing_status', 'order_processing_status_failed'];
+    }
+
+    public function testPublishPendingOutboxDispatchesQueuedOrderEvents(): void
+    {
+        $service = static::getContainer()->get(RabbitMQServiceInterface::class);
+        $repository = static::getContainer()->get(OutboxMessageRepository::class);
+        $transport = $this->getTransport('order_created');
+
+        \assert($service instanceof RabbitMQServiceInterface);
+        \assert($repository instanceof OutboxMessageRepository);
+
+        $message = OrderCreatedMessage::fromPayload(
+            '019dbb31-0a4c-76cd-ac12-a30c32589541',
+            '019db9fd-5141-783b-804e-3f3d8ab184e7',
+            2,
+            4,
+            '019dbb31-0f4b-7b31-a685-e35f6d1d40ac',
+        );
+
+        $eventId = $service->orderCreated($message);
+        $this->entityManager->flush();
+
+        self::assertSame($eventId, $message->eventId);
+        self::assertCount(0, $transport->getSent());
+        self::assertCount(1, $repository->findCreatedOrdered());
+        self::assertSame(1, $service->publishPendingOutbox());
+        self::assertCount(1, $transport->getSent());
+        self::assertCount(0, $repository->findCreatedOrdered());
     }
 
     public function testProductUpdatedCreatesLocalProductSnapshot(): void

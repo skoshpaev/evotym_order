@@ -46,6 +46,30 @@ services:
       - default
       - shared
 
+  publisher:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /workspace/order
+    environment:
+      APP_ENV: dev
+      APP_DEBUG: "0"
+      COMPOSER_ALLOW_SUPERUSER: "1"
+      COMPOSER_CACHE_DIR: /tmp/composer-cache
+      GITHUB_TOKEN: "${GITHUB_TOKEN:-}"
+      DATABASE_URL: "mysql://order:order@mysql:3306/order?serverVersion=8.0.36&charset=utf8mb4"
+    volumes:
+      - ./:/workspace/order
+      - composer-cache:/tmp/composer-cache
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: ["sh", "-lc", "while true; do php bin/console app:publish-outbox; sleep 60; done"]
+    restart: unless-stopped
+    networks:
+      - default
+      - shared
+
   nginx:
     image: nginx:1.27-alpine
     depends_on:
