@@ -12,3 +12,13 @@
 /.symfony-bootstrap/
 /.tools/
 ###< local tooling ###
+
+###> phpunit/phpunit ###
+/phpunit.xml
+/.phpunit.cache/
+/.phpunit.result.cache
+###< phpunit/phpunit ###
+
+###> ide ###
+/.idea/
+###< ide ###
