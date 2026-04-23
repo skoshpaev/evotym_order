@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Repository\ProductRepository;
+use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -27,17 +28,24 @@ class Product
     #[ORM\Column(type: Types::INTEGER)]
     private int $quantity;
 
-    private function __construct(string $id, string $name, float $price, int $quantity)
+    #[ORM\Column(type: Types::INTEGER)]
+    private int $version = 1;
+
+    #[ORM\Column(name: 'last_product_event_at', type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?DateTimeImmutable $lastProductEventAt = null;
+
+    private function __construct(string $id, string $name, float $price, int $quantity, int $version)
     {
         $this->id = $id;
         $this->name = $name;
         $this->price = self::normalizePrice($price);
-        $this->quantity = $quantity;
+        $this->quantity = self::normalizeQuantity($quantity);
+        $this->version = self::normalizeVersion($version);
     }
 
-    public static function create(string $id, string $name, float $price, int $quantity): self
+    public static function create(string $id, string $name, float $price, int $quantity, int $version): self
     {
-        return new self($id, $name, $price, $quantity);
+        return new self($id, $name, $price, $quantity, $version);
     }
 
     public function getId(): string
@@ -60,6 +68,11 @@ class Product
         return $this->quantity;
     }
 
+    public function getVersion(): int
+    {
+        return $this->version;
+    }
+
     public function decreaseQuantity(int $quantity): void
     {
         if ($quantity > $this->quantity) {
@@ -69,15 +82,44 @@ class Product
         $this->quantity -= $quantity;
     }
 
-    public function sync(string $name, float $price, int $quantity): void
+    public function sync(string $name, float $price, int $quantity, int $version): void
     {
         $this->name = $name;
         $this->price = self::normalizePrice($price);
-        $this->quantity = $quantity;
+        $this->quantity = self::normalizeQuantity($quantity);
+        $this->version = self::normalizeVersion($version);
+    }
+
+    public function getLastProductEventAt(): ?DateTimeImmutable
+    {
+        return $this->lastProductEventAt;
+    }
+
+    public function markProductEventProcessed(DateTimeImmutable $createdAt): void
+    {
+        $this->lastProductEventAt = $createdAt;
     }
 
     private static function normalizePrice(float $price): string
     {
         return number_format($price, 2, '.', '');
+    }
+
+    private static function normalizeQuantity(int $quantity): int
+    {
+        if ($quantity < 0) {
+            throw new \InvalidArgumentException('Quantity must be greater than or equal to zero.');
+        }
+
+        return $quantity;
+    }
+
+    private static function normalizeVersion(int $version): int
+    {
+        if ($version <= 0) {
+            throw new \InvalidArgumentException('Version must be greater than zero.');
+        }
+
+        return $version;
     }
 }

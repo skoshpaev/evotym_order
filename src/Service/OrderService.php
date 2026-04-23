@@ -20,7 +20,6 @@ final class OrderService implements OrderServiceInterface
     public function create(CreateOrderRequestDto $createOrderRequestDto): Order
     {
         $product = $createOrderRequestDto->product;
-        $product->decreaseQuantity($createOrderRequestDto->quantityOrdered);
 
         $order = Order::create(
             $product,
@@ -31,7 +30,12 @@ final class OrderService implements OrderServiceInterface
         $this->entityManager->persist($order);
         $this->entityManager->flush();
         $this->rabbitMQService->orderCreated(
-            new OrderCreatedMessage($product->getId(), $product->getQuantity()),
+            OrderCreatedMessage::create(
+                $order->getId(),
+                $product->getId(),
+                $createOrderRequestDto->quantityOrdered,
+                $product->getVersion(),
+            ),
         );
 
         return $order;

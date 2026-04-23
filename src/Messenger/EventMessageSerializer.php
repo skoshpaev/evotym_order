@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Messenger;
 
 use App\Message\OrderCreatedMessage;
+use App\Message\OrderProcessingStatusMessage;
 use App\Message\ProductUpdatedMessage;
+use DateTimeImmutable;
 use JsonException;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\MessageDecodingFailedException;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
+use Symfony\Component\Uid\Uuid;
 
 final class EventMessageSerializer implements SerializerInterface
 {
@@ -46,6 +49,7 @@ final class EventMessageSerializer implements SerializerInterface
         $message = match ($type) {
             ProductUpdatedMessage::class => $this->denormalizeProductUpdatedMessage($payload),
             OrderCreatedMessage::class => $this->denormalizeOrderCreatedMessage($payload),
+            OrderProcessingStatusMessage::class => $this->denormalizeOrderProcessingStatusMessage($payload),
             default => throw new MessageDecodingFailedException(sprintf('Unsupported message type "%s".', $type)),
         };
 
@@ -80,12 +84,16 @@ final class EventMessageSerializer implements SerializerInterface
      */
     private function denormalizeProductUpdatedMessage(array $payload): ProductUpdatedMessage
     {
-        $id = $this->requireString($payload, 'id');
-        $name = $this->requireString($payload, 'name');
-        $price = $this->requireFloat($payload, 'price');
-        $quantity = $this->requireInt($payload, 'quantity');
-
-        return new ProductUpdatedMessage($id, $name, $price, $quantity);
+        return ProductUpdatedMessage::fromPayload(
+            $this->requireString($payload, 'id'),
+            $this->requireString($payload, 'name'),
+            $this->requireFloat($payload, 'price'),
+            $this->requireInt($payload, 'quantity'),
+            $this->optionalInt($payload, 'version') ?? 1,
+            $this->optionalString($payload, 'eventId') ?? Uuid::v7()->toRfc4122(),
+            $this->optionalString($payload, 'type') ?? ProductUpdatedMessage::TYPE,
+            $this->optionalDateTime($payload, 'createdAt') ?? new DateTimeImmutable(),
+        );
     }
 
     /**
@@ -93,27 +101,68 @@ final class EventMessageSerializer implements SerializerInterface
      */
     private function denormalizeOrderCreatedMessage(array $payload): OrderCreatedMessage
     {
-        $productId = $this->requireString($payload, 'productId');
-        $quantity = $this->requireInt($payload, 'quantity');
-
-        return new OrderCreatedMessage($productId, $quantity);
+        return OrderCreatedMessage::fromPayload(
+            $this->optionalString($payload, 'orderId') ?? $this->optionalString($payload, 'eventId') ?? Uuid::v7()->toRfc4122(),
+            $this->requireString($payload, 'productId'),
+            $this->optionalInt($payload, 'quantityOrdered') ?? $this->requireInt($payload, 'quantity'),
+            $this->optionalInt($payload, 'expectedProductVersion') ?? 1,
+            $this->optionalString($payload, 'eventId') ?? Uuid::v7()->toRfc4122(),
+            $this->optionalString($payload, 'type') ?? OrderCreatedMessage::TYPE,
+            $this->optionalDateTime($payload, 'createdAt') ?? new DateTimeImmutable(),
+        );
     }
 
     /**
-     * @return array<string, scalar>
+     * @param array<string, mixed> $payload
+     */
+    private function denormalizeOrderProcessingStatusMessage(array $payload): OrderProcessingStatusMessage
+    {
+        return OrderProcessingStatusMessage::fromPayload(
+            $this->optionalString($payload, 'orderId') ?? $this->requireString($payload, 'orderEventId'),
+            $this->requireString($payload, 'orderEventId'),
+            $this->requireString($payload, 'productId'),
+            $this->requireString($payload, 'status'),
+            $this->optionalString($payload, 'error'),
+            $this->optionalString($payload, 'eventId') ?? Uuid::v7()->toRfc4122(),
+            $this->optionalString($payload, 'type') ?? OrderProcessingStatusMessage::TYPE,
+            $this->optionalDateTime($payload, 'createdAt') ?? new DateTimeImmutable(),
+        );
+    }
+
+    /**
+     * @return array<string, scalar|null>
      */
     private function normalizeMessage(object $message): array
     {
         return match (true) {
             $message instanceof ProductUpdatedMessage => [
+                'eventId' => $message->eventId,
+                'type' => $message->type,
+                'createdAt' => $message->createdAt->format(DATE_ATOM),
                 'id' => $message->id,
                 'name' => $message->name,
                 'price' => $message->price,
                 'quantity' => $message->quantity,
+                'version' => $message->version,
             ],
             $message instanceof OrderCreatedMessage => [
+                'eventId' => $message->eventId,
+                'type' => $message->type,
+                'createdAt' => $message->createdAt->format(DATE_ATOM),
+                'orderId' => $message->orderId,
                 'productId' => $message->productId,
-                'quantity' => $message->quantity,
+                'quantityOrdered' => $message->quantityOrdered,
+                'expectedProductVersion' => $message->expectedProductVersion,
+            ],
+            $message instanceof OrderProcessingStatusMessage => [
+                'eventId' => $message->eventId,
+                'type' => $message->type,
+                'createdAt' => $message->createdAt->format(DATE_ATOM),
+                'orderId' => $message->orderId,
+                'orderEventId' => $message->orderEventId,
+                'productId' => $message->productId,
+                'status' => $message->status,
+                'error' => $message->error,
             ],
             default => throw new MessageDecodingFailedException(
                 sprintf('Unsupported message class "%s".', $message::class),
@@ -155,5 +204,35 @@ final class EventMessageSerializer implements SerializerInterface
         }
 
         return $payload[$field];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function optionalString(array $payload, string $field): ?string
+    {
+        $value = $payload[$field] ?? null;
+
+        return \is_string($value) ? $value : null;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function optionalInt(array $payload, string $field): ?int
+    {
+        $value = $payload[$field] ?? null;
+
+        return \is_int($value) ? $value : null;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function optionalDateTime(array $payload, string $field): ?DateTimeImmutable
+    {
+        $value = $this->optionalString($payload, $field);
+
+        return $value === null ? null : new DateTimeImmutable($value);
     }
 }

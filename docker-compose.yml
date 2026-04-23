@@ -1,3 +1,4 @@
+# TEST PROJECT ONLY: ENV VALUES AND BUILT-IN CREDENTIALS IN THIS FILE ARE COMMITTED ONLY TO KEEP THE LOCAL TEST STACK SELF-CONTAINED.
 services:
   app:
     build:
@@ -6,6 +7,7 @@ services:
     working_dir: /workspace/order
     environment:
       APP_ENV: dev
+      APP_DEBUG: "0"
       COMPOSER_ALLOW_SUPERUSER: "1"
       COMPOSER_CACHE_DIR: /tmp/composer-cache
       GITHUB_TOKEN: "${GITHUB_TOKEN:-}"
@@ -38,7 +40,7 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-    command: ["php", "bin/console", "messenger:consume", "product_updated", "--time-limit=3600", "--memory-limit=128M", "--no-interaction", "-vv"]
+    command: ["php", "bin/console", "messenger:consume", "product_updated", "order_processing_status", "--time-limit=3600", "--memory-limit=128M", "--no-interaction", "-vv"]
     restart: unless-stopped
     networks:
       - default
@@ -57,6 +59,7 @@ services:
   mysql:
     image: mysql:8.0
     environment:
+      # TEST PROJECT ONLY: THESE MYSQL CREDENTIALS ARE COMMITTED ONLY FOR LOCAL DEMO/QA CONVENIENCE.
       MYSQL_DATABASE: order
       MYSQL_USER: order
       MYSQL_PASSWORD: order
