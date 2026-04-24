@@ -4,16 +4,19 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Api\OrderServiceIntrerface;
+use App\Api\RabbitMQServiceIntrerface;
 use App\Dto\CreateOrderRequestDto;
 use App\Entity\Order;
 use App\Message\OrderCreatedMessage;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Uid\Uuid;
 
-final class OrderService implements OrderServiceInterface
+final class OrderService implements OrderServiceIntrerface
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
-        private readonly RabbitMQServiceInterface $rabbitMQService,
+        private readonly RabbitMQServiceIntrerface $rabbitMQService,
     ) {
     }
 
@@ -21,15 +24,19 @@ final class OrderService implements OrderServiceInterface
     {
         $product = $createOrderRequestDto->product;
 
-        $order = Order::create(
-            $product,
-            $createOrderRequestDto->customerName,
-            $createOrderRequestDto->quantityOrdered,
-        );
+        $order = new Order();
+        $order->setId(Uuid::v7()->toRfc4122());
+        $order->setProduct($product);
+        $order->setCustomerName($createOrderRequestDto->customerName);
+        $order->setQuantityOrdered($createOrderRequestDto->quantityOrdered);
+        $order->setOrderStatus(self::STATUS_PROCESSING);
 
         $this->entityManager->persist($order);
         $eventId = $this->rabbitMQService->orderCreated(
-            OrderCreatedMessage::create(
+            new OrderCreatedMessage(
+                Uuid::v7()->toRfc4122(),
+                RabbitMQServiceIntrerface::MESSAGE_TYPE_ORDER_CREATED,
+                new \DateTimeImmutable(),
                 $order->getId(),
                 $product->getId(),
                 $createOrderRequestDto->quantityOrdered,

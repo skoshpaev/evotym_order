@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Api\PoisonMessageRecorderServiceIntrerface;
 use App\Entity\PoisonMessage;
 use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 
-final class PoisonMessageRecorder
+final class PoisonMessageRecorderService implements PoisonMessageRecorderServiceIntrerface
 {
     public function __construct(
         private readonly ManagerRegistry $managerRegistry,

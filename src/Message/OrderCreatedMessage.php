@@ -5,12 +5,9 @@ declare(strict_types=1);
 namespace App\Message;
 
 use DateTimeImmutable;
-use Symfony\Component\Uid\Uuid;
 
 final class OrderCreatedMessage
 {
-    public const TYPE = 'order.created';
-
     public function __construct(
         public readonly string $eventId,
         public readonly string $type,
@@ -20,38 +17,5 @@ final class OrderCreatedMessage
         public readonly int $quantityOrdered,
         public readonly int $expectedProductVersion,
     ) {
-    }
-
-    public static function create(string $orderId, string $productId, int $quantityOrdered, int $expectedProductVersion): self
-    {
-        return self::fromPayload(
-            $orderId,
-            $productId,
-            $quantityOrdered,
-            $expectedProductVersion,
-            Uuid::v7()->toRfc4122(),
-            self::TYPE,
-            new DateTimeImmutable(),
-        );
-    }
-
-    public static function fromPayload(
-        string $orderId,
-        string $productId,
-        int $quantityOrdered,
-        int $expectedProductVersion,
-        ?string $eventId = null,
-        ?string $type = null,
-        ?DateTimeImmutable $createdAt = null,
-    ): self {
-        return new self(
-            $eventId ?? Uuid::v7()->toRfc4122(),
-            $type ?? self::TYPE,
-            $createdAt ?? new DateTimeImmutable(),
-            $orderId,
-            $productId,
-            $quantityOrdered,
-            $expectedProductVersion,
-        );
     }
 }

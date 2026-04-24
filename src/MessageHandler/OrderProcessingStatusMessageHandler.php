@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace App\MessageHandler;
 
+use App\Api\IntegrationEventLoggerServiceIntrerface;
+use App\Api\RabbitMQServiceIntrerface;
 use App\Message\OrderProcessingStatusMessage;
-use App\Service\IntegrationEventLogger;
-use App\Service\RabbitMQServiceInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler(fromTransport: 'order_processing_status')]
 final class OrderProcessingStatusMessageHandler
 {
     public function __construct(
-        private readonly RabbitMQServiceInterface $rabbitMQService,
-        private readonly IntegrationEventLogger $integrationEventLogger,
+        private readonly RabbitMQServiceIntrerface $rabbitMQService,
+        private readonly IntegrationEventLoggerServiceIntrerface $integrationEventLogger,
     ) {
     }
 

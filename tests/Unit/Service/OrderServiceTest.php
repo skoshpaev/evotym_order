@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Service;
 
+use App\Api\OrderServiceIntrerface;
+use App\Api\RabbitMQServiceIntrerface;
 use App\Dto\CreateOrderRequestDto;
 use App\Entity\Order;
 use App\Entity\Product;
 use App\Message\OrderCreatedMessage;
 use App\Service\OrderService;
-use App\Service\RabbitMQServiceInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 
@@ -18,9 +19,9 @@ final class OrderServiceTest extends TestCase
     public function testCreatePersistsOrderAndDispatchesReservationRequestWithProductVersion(): void
     {
         $entityManager = $this->createMock(EntityManagerInterface::class);
-        $rabbitMqService = $this->createMock(RabbitMQServiceInterface::class);
+        $rabbitMqService = $this->createMock(RabbitMQServiceIntrerface::class);
         $service = new OrderService($entityManager, $rabbitMqService);
-        $product = Product::create(
+        $product = $this->createProduct(
             '019db9fd-5141-783b-804e-3f3d8ab184e7',
             'Coffee Mug',
             12.99,
@@ -63,8 +64,20 @@ final class OrderServiceTest extends TestCase
         $order = $service->create($dto);
 
         self::assertInstanceOf(Order::class, $order);
-        self::assertSame(Order::STATUS_PROCESSING, $order->getOrderStatus());
+        self::assertSame(OrderServiceIntrerface::STATUS_PROCESSING, $order->getOrderStatus());
         self::assertSame('John Doe', $order->getCustomerName());
         self::assertSame(2, $order->getQuantityOrdered());
+    }
+
+    private function createProduct(string $id, string $name, float $price, int $quantity, int $version): Product
+    {
+        $product = new Product();
+        $product->setId($id);
+        $product->setName($name);
+        $product->setPrice($price);
+        $product->setQuantity($quantity);
+        $product->setVersion($version);
+
+        return $product;
     }
 }

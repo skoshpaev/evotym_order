@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\EventSubscriber;
 
-use App\Service\PoisonMessageRecorder;
+use App\Api\PoisonMessageRecorderServiceIntrerface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;
 
 final class PoisonMessageSubscriber implements EventSubscriberInterface
 {
     public function __construct(
-        private readonly PoisonMessageRecorder $poisonMessageRecorder,
+        private readonly PoisonMessageRecorderServiceIntrerface $poisonMessageRecorder,
     ) {
     }
 

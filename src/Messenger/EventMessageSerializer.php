@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Messenger;
 
+use App\Api\RabbitMQServiceIntrerface;
 use App\Message\OrderCreatedMessage;
 use App\Message\OrderProcessingStatusMessage;
 use App\Message\ProductUpdatedMessage;
@@ -84,15 +85,15 @@ final class EventMessageSerializer implements SerializerInterface
      */
     private function denormalizeProductUpdatedMessage(array $payload): ProductUpdatedMessage
     {
-        return ProductUpdatedMessage::fromPayload(
+        return new ProductUpdatedMessage(
+            $this->optionalString($payload, 'eventId') ?? Uuid::v7()->toRfc4122(),
+            $this->optionalString($payload, 'type') ?? RabbitMQServiceIntrerface::MESSAGE_TYPE_PRODUCT_UPDATED,
+            $this->optionalDateTime($payload, 'createdAt') ?? new DateTimeImmutable(),
             $this->requireString($payload, 'id'),
             $this->requireString($payload, 'name'),
             $this->requireFloat($payload, 'price'),
             $this->requireInt($payload, 'quantity'),
             $this->optionalInt($payload, 'version') ?? 1,
-            $this->optionalString($payload, 'eventId') ?? Uuid::v7()->toRfc4122(),
-            $this->optionalString($payload, 'type') ?? ProductUpdatedMessage::TYPE,
-            $this->optionalDateTime($payload, 'createdAt') ?? new DateTimeImmutable(),
         );
     }
 
@@ -101,14 +102,14 @@ final class EventMessageSerializer implements SerializerInterface
      */
     private function denormalizeOrderCreatedMessage(array $payload): OrderCreatedMessage
     {
-        return OrderCreatedMessage::fromPayload(
+        return new OrderCreatedMessage(
+            $this->optionalString($payload, 'eventId') ?? Uuid::v7()->toRfc4122(),
+            $this->optionalString($payload, 'type') ?? RabbitMQServiceIntrerface::MESSAGE_TYPE_ORDER_CREATED,
+            $this->optionalDateTime($payload, 'createdAt') ?? new DateTimeImmutable(),
             $this->optionalString($payload, 'orderId') ?? $this->optionalString($payload, 'eventId') ?? Uuid::v7()->toRfc4122(),
             $this->requireString($payload, 'productId'),
             $this->optionalInt($payload, 'quantityOrdered') ?? $this->requireInt($payload, 'quantity'),
             $this->optionalInt($payload, 'expectedProductVersion') ?? 1,
-            $this->optionalString($payload, 'eventId') ?? Uuid::v7()->toRfc4122(),
-            $this->optionalString($payload, 'type') ?? OrderCreatedMessage::TYPE,
-            $this->optionalDateTime($payload, 'createdAt') ?? new DateTimeImmutable(),
         );
     }
 
@@ -117,15 +118,15 @@ final class EventMessageSerializer implements SerializerInterface
      */
     private function denormalizeOrderProcessingStatusMessage(array $payload): OrderProcessingStatusMessage
     {
-        return OrderProcessingStatusMessage::fromPayload(
+        return new OrderProcessingStatusMessage(
+            $this->optionalString($payload, 'eventId') ?? Uuid::v7()->toRfc4122(),
+            $this->optionalString($payload, 'type') ?? RabbitMQServiceIntrerface::MESSAGE_TYPE_ORDER_PROCESSING_STATUS,
+            $this->optionalDateTime($payload, 'createdAt') ?? new DateTimeImmutable(),
             $this->optionalString($payload, 'orderId') ?? $this->requireString($payload, 'orderEventId'),
             $this->requireString($payload, 'orderEventId'),
             $this->requireString($payload, 'productId'),
             $this->requireString($payload, 'status'),
             $this->optionalString($payload, 'error'),
-            $this->optionalString($payload, 'eventId') ?? Uuid::v7()->toRfc4122(),
-            $this->optionalString($payload, 'type') ?? OrderProcessingStatusMessage::TYPE,
-            $this->optionalDateTime($payload, 'createdAt') ?? new DateTimeImmutable(),
         );
     }
 

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Api\IntegrationEventLoggerServiceIntrerface;
+use App\Api\OrderServiceIntrerface;
+use App\Api\RabbitMQServiceIntrerface;
 use App\Entity\InboxMessage;
 use App\Entity\Order;
 use App\Entity\OutboxMessage;
@@ -20,7 +23,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Exception\UnrecoverableMessageHandlingException;
 use Symfony\Component\Messenger\MessageBusInterface;
 
-final class RabbitMQService implements RabbitMQServiceInterface
+final class RabbitMQService implements RabbitMQServiceIntrerface
 {
     public function __construct(
         private readonly MessageBusInterface $messageBus,
@@ -29,7 +32,7 @@ final class RabbitMQService implements RabbitMQServiceInterface
         private readonly InboxMessageRepository $inboxMessageRepository,
         private readonly OutboxMessageRepository $outboxMessageRepository,
         private readonly EntityManagerInterface $entityManager,
-        private readonly IntegrationEventLogger $integrationEventLogger,
+        private readonly IntegrationEventLoggerServiceIntrerface $integrationEventLogger,
     ) {
     }
 
@@ -59,19 +62,17 @@ final class RabbitMQService implements RabbitMQServiceInterface
         }
 
         if ($product === null) {
-            $product = Product::create(
-                $message->id,
-                $message->name,
-                $message->price,
-                $message->quantity,
-                $message->version,
-            );
+            $product = new Product();
+            $product->setId($message->id);
             $this->entityManager->persist($product);
-        } else {
-            $product->sync($message->name, $message->price, $message->quantity, $message->version);
         }
 
-        $product->markProductEventProcessed($message->createdAt);
+        $product->setName($message->name);
+        $product->setPrice($message->price);
+        $product->setQuantity($message->quantity);
+        $product->setVersion($message->version);
+        $product->setLastProductEventAt($message->createdAt);
+
         $this->storeProductUpdatedInboxResult($message, $product->getId(), InboxMessage::STATUS_PROCESSED);
         $this->entityManager->flush();
     }
@@ -116,7 +117,7 @@ final class RabbitMQService implements RabbitMQServiceInterface
             return;
         }
 
-        if ($order->getOrderStatus() !== Order::STATUS_PROCESSING) {
+        if ($order->getOrderStatus() !== OrderServiceIntrerface::STATUS_PROCESSING) {
             $this->storeOrderProcessingStatusInboxResult($message, InboxMessage::STATUS_IGNORED);
             $this->entityManager->flush();
             $this->integrationEventLogger->warning(
@@ -127,9 +128,9 @@ final class RabbitMQService implements RabbitMQServiceInterface
             return;
         }
 
-        if ($message->status === OrderProcessingStatusMessage::STATUS_FAILED) {
-            $order->markFailed();
-            $order->markProcessingStatusEventProcessed($message->createdAt);
+        if ($message->status === self::ORDER_PROCESSING_STATUS_FAILED) {
+            $order->setOrderStatus(OrderServiceIntrerface::STATUS_FAILED);
+            $order->setLastProcessingStatusEventAt($message->createdAt);
             $this->storeOrderProcessingStatusInboxResult($message, InboxMessage::STATUS_PROCESSED);
             $this->entityManager->flush();
             $this->integrationEventLogger->error(
@@ -140,8 +141,8 @@ final class RabbitMQService implements RabbitMQServiceInterface
             return;
         }
 
-        $order->markProcessed();
-        $order->markProcessingStatusEventProcessed($message->createdAt);
+        $order->setOrderStatus(OrderServiceIntrerface::STATUS_PROCESSED);
+        $order->setLastProcessingStatusEventAt($message->createdAt);
         $this->storeOrderProcessingStatusInboxResult($message, InboxMessage::STATUS_PROCESSED);
         $this->entityManager->flush();
         $this->integrationEventLogger->info(
@@ -302,14 +303,14 @@ final class RabbitMQService implements RabbitMQServiceInterface
         $event = $outboxMessage->getEvent();
 
         return match ($outboxMessage->getEventType()) {
-            OrderCreatedMessage::TYPE => OrderCreatedMessage::fromPayload(
+            self::MESSAGE_TYPE_ORDER_CREATED => new OrderCreatedMessage(
+                $this->requireString($event, 'eventId'),
+                $this->requireString($event, 'type'),
+                $this->requireDateTime($event, 'createdAt'),
                 $this->requireString($event, 'orderId'),
                 $this->requireString($event, 'productId'),
                 $this->requireInt($event, 'quantityOrdered'),
                 $this->requireInt($event, 'expectedProductVersion'),
-                $this->requireString($event, 'eventId'),
-                $this->requireString($event, 'type'),
-                $this->requireDateTime($event, 'createdAt'),
             ),
             default => throw new \LogicException(sprintf('Unsupported outbox event type "%s".', $outboxMessage->getEventType())),
         };
