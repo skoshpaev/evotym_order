@@ -2,8 +2,7 @@
 set -eu
 
 PROJECT_DIR="/workspace/order"
-REPO_SSH_URL="git@github.com:skoshpaev/evotym_order.git"
-REPO_HTTPS_URL="https://github.com/skoshpaev/evotym_order.git"
+REPO_NAME="evotym_order"
 SYMFONY_SKELETON="symfony/skeleton:^6.4"
 TMP_DIRS=""
 
@@ -21,6 +20,78 @@ cleanup() {
 
 track_tmp_dir() {
     TMP_DIRS="$TMP_DIRS $1"
+}
+
+extract_github_owner() {
+    remote_url="$1"
+
+    printf '%s\n' "$remote_url" | sed -n 's#.*github.com[:/]\([^/]*\)/.*#\1#p'
+}
+
+detect_github_owner() {
+    if [ -n "${GITHUB_OWNER:-}" ]; then
+        printf '%s\n' "$GITHUB_OWNER"
+        return 0
+    fi
+
+    if [ -d "$PROJECT_DIR/.git" ]; then
+        owner="$(extract_github_owner "$(git -C "$PROJECT_DIR" remote get-url origin 2>/dev/null || true)")"
+
+        if [ -n "$owner" ]; then
+            printf '%s\n' "$owner"
+            return 0
+        fi
+    fi
+
+    if [ -n "${PROJECT_REPO_HTTPS_URL:-}" ]; then
+        owner="$(extract_github_owner "$PROJECT_REPO_HTTPS_URL")"
+
+        if [ -n "$owner" ]; then
+            printf '%s\n' "$owner"
+            return 0
+        fi
+    fi
+
+    if [ -n "${PROJECT_REPO_SSH_URL:-}" ]; then
+        owner="$(extract_github_owner "$PROJECT_REPO_SSH_URL")"
+
+        if [ -n "$owner" ]; then
+            printf '%s\n' "$owner"
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
+get_https_repo_url() {
+    if [ -n "${PROJECT_REPO_HTTPS_URL:-}" ]; then
+        printf '%s\n' "$PROJECT_REPO_HTTPS_URL"
+        return 0
+    fi
+
+    owner="$(detect_github_owner || true)"
+
+    if [ -z "$owner" ]; then
+        return 1
+    fi
+
+    printf 'https://github.com/%s/%s.git\n' "$owner" "$REPO_NAME"
+}
+
+get_ssh_repo_url() {
+    if [ -n "${PROJECT_REPO_SSH_URL:-}" ]; then
+        printf '%s\n' "$PROJECT_REPO_SSH_URL"
+        return 0
+    fi
+
+    owner="$(detect_github_owner || true)"
+
+    if [ -z "$owner" ]; then
+        return 1
+    fi
+
+    printf 'git@github.com:%s/%s.git\n' "$owner" "$REPO_NAME"
 }
 
 is_valid_symfony_project() {
@@ -60,16 +131,26 @@ clone_repository_if_needed() {
     tmp_dir="$(mktemp -d)"
     track_tmp_dir "$tmp_dir"
 
-    clone_url="$REPO_HTTPS_URL"
+    repo_https_url="$(get_https_repo_url || true)"
+
+    if [ -z "$repo_https_url" ]; then
+        log "Repository URL is not configured. Set GITHUB_OWNER or PROJECT_REPO_HTTPS_URL."
+        exit 1
+    fi
+
+    clone_url="$repo_https_url"
     if [ -n "${GITHUB_TOKEN:-}" ]; then
-        clone_url="https://x-access-token:${GITHUB_TOKEN}@github.com/skoshpaev/evotym_order.git"
+        clone_url="https://x-access-token:${GITHUB_TOKEN}@${repo_https_url#https://}"
         log "Cloning repository with token authentication"
     else
         log "Cloning repository over HTTPS"
     fi
 
     git clone "$clone_url" "$tmp_dir"
-    git -C "$tmp_dir" remote set-url origin "$REPO_SSH_URL" >/dev/null 2>&1 || true
+    repo_ssh_url="$(get_ssh_repo_url || true)"
+    if [ -n "$repo_ssh_url" ]; then
+        git -C "$tmp_dir" remote set-url origin "$repo_ssh_url" >/dev/null 2>&1 || true
+    fi
     cp -an "$tmp_dir"/. "$PROJECT_DIR"/
 }
 
@@ -138,7 +219,10 @@ main() {
 
     if [ -d "$PROJECT_DIR/.git" ]; then
         git config --global --add safe.directory "$PROJECT_DIR" >/dev/null 2>&1 || true
-        git remote set-url origin "$REPO_SSH_URL" >/dev/null 2>&1 || true
+        repo_ssh_url="$(get_ssh_repo_url || true)"
+        if [ -n "$repo_ssh_url" ]; then
+            git remote set-url origin "$repo_ssh_url" >/dev/null 2>&1 || true
+        fi
     fi
 
     bootstrap_symfony_skeleton_if_needed

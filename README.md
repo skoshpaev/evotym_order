@@ -22,7 +22,7 @@
 Если отдельно:
 
 ```bash
-cd /Users/koshpaevsv/Evotym/order
+cd order
 docker compose up -d --build
 ```
 
@@ -80,7 +80,7 @@ cd /workspace/order && vendor/bin/phpunit -c phpunit.dist.xml
 С хоста, если сервис поднят через корневой compose:
 
 ```bash
-docker compose -f /Users/koshpaevsv/Evotym/docker-compose.yaml exec -T order-app vendor/bin/phpunit -c phpunit.dist.xml
+docker compose -f ../docker-compose.yaml exec -T order-app vendor/bin/phpunit -c phpunit.dist.xml
 ```
 
 ## Что внутри
@@ -91,4 +91,3 @@ docker compose -f /Users/koshpaevsv/Evotym/docker-compose.yaml exec -T order-app
 - outbox для исходящих событий
 - inbox для входящих событий
 - consumer для `product.updated` и `order.processing.status`
-
