@@ -1,4 +1,5 @@
 <?php
+/** @noinspection PhpUnused */
 
 declare(strict_types=1);
 
@@ -12,8 +13,6 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'poison_messages')]
 final class PoisonMessage
 {
-    public const STATUS_POISONED = 'poisoned';
-
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: Types::INTEGER)]
@@ -44,45 +43,94 @@ final class PoisonMessage
     #[ORM\Column(name: 'created_at', type: Types::DATETIME_IMMUTABLE)]
     private DateTimeImmutable $createdAt;
 
-    /**
-     * @param array<string, mixed> $payload
-     */
-    private function __construct(
-        ?string $eventId,
-        ?string $eventType,
-        string $messageClass,
-        string $failureTransportName,
-        array $payload,
-        string $errorMessage,
-    ) {
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+
+    public function getEventId(): ?string
+    {
+        return $this->eventId;
+    }
+
+    public function setEventId(?string $eventId): void
+    {
         $this->eventId = $eventId;
+    }
+
+    public function getEventType(): ?string
+    {
+        return $this->eventType;
+    }
+
+    public function setEventType(?string $eventType): void
+    {
         $this->eventType = $eventType;
+    }
+
+    public function getMessageClass(): string
+    {
+        return $this->messageClass;
+    }
+
+    public function setMessageClass(string $messageClass): void
+    {
         $this->messageClass = $messageClass;
+    }
+
+    public function getFailureTransportName(): string
+    {
+        return $this->failureTransportName;
+    }
+
+    public function setFailureTransportName(string $failureTransportName): void
+    {
         $this->failureTransportName = $failureTransportName;
-        $this->payload = $payload;
-        $this->errorMessage = $errorMessage;
-        $this->status = self::STATUS_POISONED;
-        $this->createdAt = new DateTimeImmutable();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getPayload(): array
+    {
+        return $this->payload;
     }
 
     /**
      * @param array<string, mixed> $payload
      */
-    public static function create(
-        ?string $eventId,
-        ?string $eventType,
-        string $messageClass,
-        string $failureTransportName,
-        array $payload,
-        string $errorMessage,
-    ): self {
-        return new self(
-            $eventId,
-            $eventType,
-            $messageClass,
-            $failureTransportName,
-            $payload,
-            $errorMessage,
-        );
+    public function setPayload(array $payload): void
+    {
+        $this->payload = $payload;
+    }
+
+    public function getErrorMessage(): string
+    {
+        return $this->errorMessage;
+    }
+
+    public function setErrorMessage(string $errorMessage): void
+    {
+        $this->errorMessage = $errorMessage;
+    }
+
+    public function getStatus(): string
+    {
+        return $this->status;
+    }
+
+    public function setStatus(string $status): void
+    {
+        $this->status = $status;
+    }
+
+    public function getCreatedAt(): DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(DateTimeImmutable $createdAt): void
+    {
+        $this->createdAt = $createdAt;
     }
 }

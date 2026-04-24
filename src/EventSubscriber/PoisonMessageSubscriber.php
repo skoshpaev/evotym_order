@@ -4,17 +4,26 @@ declare(strict_types=1);
 
 namespace App\EventSubscriber;
 
-use App\Service\PoisonMessageRecorder;
+use App\Service\Api\PoisonMessageRecorderServiceInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;
+use Throwable;
 
 final class PoisonMessageSubscriber implements EventSubscriberInterface
 {
     public function __construct(
-        private readonly PoisonMessageRecorder $poisonMessageRecorder,
+        private readonly PoisonMessageRecorderServiceInterface $poisonMessageRecorder,
     ) {
     }
 
+    public static function getSubscribedEvents(): array
+    {
+        return [
+            WorkerMessageFailedEvent::class => ['onMessageFailed', -150],
+        ];
+    }
+
+    /** @noinspection PhpUnused */
     public function onMessageFailed(WorkerMessageFailedEvent $event): void
     {
         if ($event->willRetry()) {
@@ -27,16 +36,9 @@ final class PoisonMessageSubscriber implements EventSubscriberInterface
                 $event->getThrowable(),
                 $this->resolveFailureTransportName($event->getReceiverName()),
             );
-        } catch (\Throwable $throwable) {
+        } catch (Throwable $throwable) {
             error_log(sprintf('Could not record poison message: %s', $throwable->getMessage()));
         }
-    }
-
-    public static function getSubscribedEvents(): array
-    {
-        return [
-            WorkerMessageFailedEvent::class => ['onMessageFailed', -150],
-        ];
     }
 
     private function resolveFailureTransportName(string $receiverName): string

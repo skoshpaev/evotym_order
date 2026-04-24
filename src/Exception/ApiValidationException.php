@@ -22,7 +22,7 @@ final class ApiValidationException extends BadRequestHttpException
         $errors = [];
 
         foreach ($violations as $violation) {
-            $path = (string) $violation->getPropertyPath();
+            $path = $violation->getPropertyPath();
             $errors[$path][] = (string) $violation->getMessage();
         }
 

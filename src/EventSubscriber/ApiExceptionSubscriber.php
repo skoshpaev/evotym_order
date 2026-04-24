@@ -21,6 +21,7 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface
         ];
     }
 
+    /** @noinspection PhpUnused */
     public function onKernelException(ExceptionEvent $event): void
     {
         $request = $event->getRequest();
@@ -32,29 +33,33 @@ final class ApiExceptionSubscriber implements EventSubscriberInterface
         $throwable = $event->getThrowable();
 
         if ($throwable instanceof ApiValidationException) {
-            $event->setResponse(new JsonResponse(
-                [
-                    'message' => 'Validation failed.',
-                    'errors' => $throwable->getErrors(),
-                ],
-                Response::HTTP_BAD_REQUEST,
-            ));
+            $event->setResponse(
+                new JsonResponse(
+                    [
+                        'message' => 'Validation failed.',
+                        'errors'  => $throwable->getErrors(),
+                    ], Response::HTTP_BAD_REQUEST,
+                )
+            );
 
             return;
         }
 
         if ($throwable instanceof HttpExceptionInterface) {
-            $event->setResponse(new JsonResponse(
-                ['message' => $throwable->getMessage() ?: Response::$statusTexts[$throwable->getStatusCode()]],
-                $throwable->getStatusCode(),
-            ));
+            $event->setResponse(
+                new JsonResponse(
+                    ['message' => $throwable->getMessage() ?: Response::$statusTexts[$throwable->getStatusCode()]],
+                    $throwable->getStatusCode(),
+                )
+            );
 
             return;
         }
 
-        $event->setResponse(new JsonResponse(
-            ['message' => 'Internal server error.'],
-            Response::HTTP_INTERNAL_SERVER_ERROR,
-        ));
+        $event->setResponse(
+            new JsonResponse(
+                ['message' => 'Internal server error.'], Response::HTTP_INTERNAL_SERVER_ERROR,
+            )
+        );
     }
 }

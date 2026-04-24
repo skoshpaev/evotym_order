@@ -14,9 +14,6 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'outbox')]
 final class OutboxMessage
 {
-    public const STATUS_CREATED = 'created';
-    public const STATUS_PUBLISHED = 'published';
-
     #[ORM\Id]
     #[ORM\Column(name: 'event_id', type: Types::STRING, length: 36, unique: true)]
     private string $eventId;
@@ -37,40 +34,14 @@ final class OutboxMessage
     #[ORM\Column(name: 'created_at', type: Types::DATETIME_IMMUTABLE)]
     private DateTimeImmutable $createdAt;
 
-    /**
-     * @param array<string, scalar|null> $event
-     */
-    private function __construct(
-        string $eventId,
-        array $event,
-        ?string $productId,
-        string $eventType,
-        DateTimeImmutable $createdAt,
-    ) {
-        $this->eventId = $eventId;
-        $this->event = $event;
-        $this->productId = $productId;
-        $this->eventType = $eventType;
-        $this->status = self::STATUS_CREATED;
-        $this->createdAt = $createdAt;
-    }
-
-    /**
-     * @param array<string, scalar|null> $event
-     */
-    public static function create(
-        string $eventId,
-        array $event,
-        ?string $productId,
-        string $eventType,
-        DateTimeImmutable $createdAt,
-    ): self {
-        return new self($eventId, $event, $productId, $eventType, $createdAt);
-    }
-
     public function getEventId(): string
     {
         return $this->eventId;
+    }
+
+    public function setEventId(string $eventId): void
+    {
+        $this->eventId = $eventId;
     }
 
     /**
@@ -81,24 +52,12 @@ final class OutboxMessage
         return $this->event;
     }
 
-    public function getEventType(): string
+    /**
+     * @param array<string, scalar|null> $event
+     */
+    public function setEvent(array $event): void
     {
-        return $this->eventType;
-    }
-
-    public function isCreated(): bool
-    {
-        return $this->status === self::STATUS_CREATED;
-    }
-
-    public function markPublished(): void
-    {
-        $this->status = self::STATUS_PUBLISHED;
-    }
-
-    public function getStatus(): string
-    {
-        return $this->status;
+        $this->event = $event;
     }
 
     public function getProductId(): ?string
@@ -106,8 +65,38 @@ final class OutboxMessage
         return $this->productId;
     }
 
+    public function setProductId(?string $productId): void
+    {
+        $this->productId = $productId;
+    }
+
+    public function getEventType(): string
+    {
+        return $this->eventType;
+    }
+
+    public function setEventType(string $eventType): void
+    {
+        $this->eventType = $eventType;
+    }
+
+    public function getStatus(): string
+    {
+        return $this->status;
+    }
+
+    public function setStatus(string $status): void
+    {
+        $this->status = $status;
+    }
+
     public function getCreatedAt(): DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function setCreatedAt(DateTimeImmutable $createdAt): void
+    {
+        $this->createdAt = $createdAt;
     }
 }

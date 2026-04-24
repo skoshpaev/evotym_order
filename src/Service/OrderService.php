@@ -7,7 +7,12 @@ namespace App\Service;
 use App\Dto\CreateOrderRequestDto;
 use App\Entity\Order;
 use App\Message\OrderCreatedMessage;
+use App\Service\Api\OrderServiceInterface;
+use App\Service\Api\RabbitMQServiceInterface;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Evotym\SharedBundle\Dto\ProductViewDto;
+use Symfony\Component\Uid\Uuid;
 
 final class OrderService implements OrderServiceInterface
 {
@@ -21,15 +26,19 @@ final class OrderService implements OrderServiceInterface
     {
         $product = $createOrderRequestDto->product;
 
-        $order = Order::create(
-            $product,
-            $createOrderRequestDto->customerName,
-            $createOrderRequestDto->quantityOrdered,
-        );
+        $order = new Order();
+        $order->setId(Uuid::v7()->toRfc4122());
+        $order->setProduct($product);
+        $order->setCustomerName($createOrderRequestDto->customerName);
+        $order->setQuantityOrdered($createOrderRequestDto->quantityOrdered);
+        $order->setOrderStatus(self::STATUS_PROCESSING);
 
         $this->entityManager->persist($order);
         $eventId = $this->rabbitMQService->orderCreated(
-            OrderCreatedMessage::create(
+            new OrderCreatedMessage(
+                Uuid::v7()->toRfc4122(),
+                RabbitMQServiceInterface::MESSAGE_TYPE_ORDER_CREATED,
+                new DateTimeImmutable(),
                 $order->getId(),
                 $product->getId(),
                 $createOrderRequestDto->quantityOrdered,
@@ -40,5 +49,16 @@ final class OrderService implements OrderServiceInterface
         $this->rabbitMQService->publishOutboxMessage($eventId);
 
         return $order;
+    }
+
+    public function convertToArray(Order $order): array
+    {
+        return [
+            'orderId'         => $order->getId(),
+            'product'         => ProductViewDto::fromProduct($order->getProduct())->toArray(),
+            'customerName'    => $order->getCustomerName(),
+            'quantityOrdered' => $order->getQuantityOrdered(),
+            'orderStatus'     => $order->getOrderStatus(),
+        ];
     }
 }

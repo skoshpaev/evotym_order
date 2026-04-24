@@ -5,34 +5,39 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\PoisonMessage;
+use App\Service\Api\PoisonMessageRecorderServiceInterface;
+use DateTimeImmutable;
 use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
+use LogicException;
+use Throwable;
 
-final class PoisonMessageRecorder
+final class PoisonMessageRecorderService implements PoisonMessageRecorderServiceInterface
 {
     public function __construct(
         private readonly ManagerRegistry $managerRegistry,
     ) {
     }
 
-    public function record(object $message, \Throwable $throwable, string $failureTransportName): void
+    public function record(object $message, Throwable $throwable, string $failureTransportName): void
     {
         $payload = $this->normalizeValue(get_object_vars($message));
         $eventId = $this->extractStringProperty($message, 'eventId');
         $eventType = $this->extractStringProperty($message, 'type');
 
         $entityManager = $this->getEntityManager();
-        $entityManager->persist(
-            PoisonMessage::create(
-                $eventId,
-                $eventType,
-                $message::class,
-                $failureTransportName,
-                \is_array($payload) ? $payload : ['value' => $payload],
-                $throwable->getMessage(),
-            ),
-        );
+        $poisonMessage = new PoisonMessage();
+        $poisonMessage->setEventId($eventId);
+        $poisonMessage->setEventType($eventType);
+        $poisonMessage->setMessageClass($message::class);
+        $poisonMessage->setFailureTransportName($failureTransportName);
+        $poisonMessage->setPayload(is_array($payload) ? $payload : ['value' => $payload]);
+        $poisonMessage->setErrorMessage($throwable->getMessage());
+        $poisonMessage->setStatus(self::POISON_STATUS_POISONED);
+        $poisonMessage->setCreatedAt(new DateTimeImmutable());
+
+        $entityManager->persist($poisonMessage);
         $entityManager->flush();
     }
 
@@ -47,7 +52,7 @@ final class PoisonMessageRecorder
         $resetManager = $this->managerRegistry->resetManager();
 
         if (!$resetManager instanceof EntityManagerInterface) {
-            throw new \LogicException('Doctrine entity manager is not available for poison message recording.');
+            throw new LogicException('Doctrine entity manager is not available for poison message recording.');
         }
 
         return $resetManager;
@@ -57,7 +62,7 @@ final class PoisonMessageRecorder
     {
         $value = get_object_vars($message)[$property] ?? null;
 
-        return \is_string($value) && $value !== '' ? $value : null;
+        return is_string($value) && $value !== '' ? $value : null;
     }
 
     /**
@@ -67,7 +72,7 @@ final class PoisonMessageRecorder
      */
     private function normalizeValue(mixed $value): mixed
     {
-        if (\is_scalar($value) || $value === null) {
+        if (is_scalar($value) || $value === null) {
             return $value;
         }
 
@@ -75,23 +80,23 @@ final class PoisonMessageRecorder
             return $value->format(DATE_ATOM);
         }
 
-        if (\is_array($value)) {
+        if (is_array($value)) {
             $normalized = [];
 
             foreach ($value as $key => $item) {
-                $normalized[(string) $key] = $this->normalizeValue($item);
+                $normalized[(string)$key] = $this->normalizeValue($item);
             }
 
             return $normalized;
         }
 
-        if (\is_object($value)) {
+        if (is_object($value)) {
             return [
                 '__class' => $value::class,
-                'data' => $this->normalizeValue(get_object_vars($value)),
+                'data'    => $this->normalizeValue(get_object_vars($value)),
             ];
         }
 
-        return (string) $value;
+        return (string)$value;
     }
 }

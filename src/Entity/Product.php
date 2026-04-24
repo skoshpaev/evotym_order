@@ -20,15 +20,24 @@ class Product extends AbstractProduct
     #[ORM\Column(name: 'last_product_event_at', type: Types::DATETIME_IMMUTABLE, nullable: true)]
     private ?DateTimeImmutable $lastProductEventAt = null;
 
-    private function __construct(string $id, string $name, float $price, int $quantity, int $version)
+    public function setId(string $id): void
     {
-        $this->initializeProduct($id, $name, $price, $quantity);
-        $this->version = self::normalizeVersion($version);
+        $this->id = $id;
     }
 
-    public static function create(string $id, string $name, float $price, int $quantity, int $version): self
+    public function setName(string $name): void
     {
-        return new self($id, $name, $price, $quantity, $version);
+        $this->name = $name;
+    }
+
+    public function setPrice(float $price): void
+    {
+        $this->price = self::normalizePrice($price);
+    }
+
+    public function setQuantity(int $quantity): void
+    {
+        $this->quantity = self::normalizeQuantity($quantity);
     }
 
     public function getVersion(): int
@@ -36,10 +45,9 @@ class Product extends AbstractProduct
         return $this->version;
     }
 
-    public function sync(string $name, float $price, int $quantity, int $version): void
+    public function setVersion(int $version): void
     {
-        $this->syncProductData($name, $price, $quantity);
-        $this->version = self::normalizeVersion($version);
+        $this->version = $version;
     }
 
     public function getLastProductEventAt(): ?DateTimeImmutable
@@ -47,17 +55,8 @@ class Product extends AbstractProduct
         return $this->lastProductEventAt;
     }
 
-    public function markProductEventProcessed(DateTimeImmutable $createdAt): void
+    public function setLastProductEventAt(?DateTimeImmutable $lastProductEventAt): void
     {
-        $this->lastProductEventAt = $createdAt;
-    }
-
-    private static function normalizeVersion(int $version): int
-    {
-        if ($version <= 0) {
-            throw new \InvalidArgumentException('Version must be greater than zero.');
-        }
-
-        return $version;
+        $this->lastProductEventAt = $lastProductEventAt;
     }
 }

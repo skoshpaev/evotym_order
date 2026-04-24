@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\Service;
 
-use App\Dto\CreateOrderRequestDto;
 use App\Entity\Order;
 use App\Entity\Product;
 use App\Message\OrderCreatedMessage;
 use App\Repository\OrderRepository;
 use App\Repository\OutboxMessageRepository;
 use App\Repository\ProductRepository;
-use App\Service\OrderServiceInterface;
+use App\Service\Api\OrderServiceInterface;
 use App\Tests\Integration\DatabaseKernelTestCase;
 
 final class OrderServiceIntegrationTest extends DatabaseKernelTestCase
@@ -23,7 +22,7 @@ final class OrderServiceIntegrationTest extends DatabaseKernelTestCase
 
     public function testCreatePersistsOrderAndDispatchesReservationMessageWithoutChangingLocalStock(): void
     {
-        $product = Product::create(
+        $product = $this->createProduct(
             '019db9fd-5141-783b-804e-3f3d8ab184e7',
             'Coffee Mug',
             12.99,
@@ -44,7 +43,7 @@ final class OrderServiceIntegrationTest extends DatabaseKernelTestCase
         \assert($outboxRepository instanceof OutboxMessageRepository);
         \assert($productRepository instanceof ProductRepository);
 
-        $order = $service->create(new CreateOrderRequestDto($product, 'John Doe', 2));
+        $order = $service->create(new \App\Dto\CreateOrderRequestDto($product, 'John Doe', 2));
 
         $storedOrder = $orderRepository->find($order->getId());
         $storedProduct = $productRepository->find($product->getId());
@@ -52,7 +51,7 @@ final class OrderServiceIntegrationTest extends DatabaseKernelTestCase
 
         self::assertNotNull($storedOrder);
         self::assertInstanceOf(Order::class, $storedOrder);
-        self::assertSame(Order::STATUS_PROCESSING, $storedOrder->getOrderStatus());
+        self::assertSame(OrderServiceInterface::STATUS_PROCESSING, $storedOrder->getOrderStatus());
         self::assertSame(5, $storedProduct?->getQuantity());
         self::assertCount(1, $sentMessages);
         self::assertCount(1, $outboxRepository->findAll());
@@ -67,5 +66,17 @@ final class OrderServiceIntegrationTest extends DatabaseKernelTestCase
         self::assertSame($product->getId(), $message->productId);
         self::assertSame(2, $message->quantityOrdered);
         self::assertSame(4, $message->expectedProductVersion);
+    }
+
+    private function createProduct(string $id, string $name, float $price, int $quantity, int $version): Product
+    {
+        $product = new Product();
+        $product->setId($id);
+        $product->setName($name);
+        $product->setPrice($price);
+        $product->setQuantity($quantity);
+        $product->setVersion($version);
+
+        return $product;
     }
 }

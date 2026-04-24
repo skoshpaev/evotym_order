@@ -7,7 +7,9 @@ namespace App\Messenger;
 use App\Message\OrderCreatedMessage;
 use App\Message\OrderProcessingStatusMessage;
 use App\Message\ProductUpdatedMessage;
+use App\Service\Api\RabbitMQServiceInterface;
 use DateTimeImmutable;
+use Exception;
 use JsonException;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\MessageDecodingFailedException;
@@ -16,33 +18,33 @@ use Symfony\Component\Uid\Uuid;
 
 final class EventMessageSerializer implements SerializerInterface
 {
+    /**
+     * @throws Exception
+     */
     public function decode(array $encodedEnvelope): Envelope
     {
         $headers = $encodedEnvelope['headers'] ?? [];
         $type = $headers['type'] ?? null;
 
-        if (!\is_string($type) || $type === '') {
+        if (!is_string($type) || $type === '') {
             throw new MessageDecodingFailedException('Missing message type header.');
         }
 
         $body = $encodedEnvelope['body'] ?? '';
 
-        if (!\is_string($body)) {
+        if (!is_string($body)) {
             throw new MessageDecodingFailedException('Message body must be a JSON string.');
         }
 
         try {
-            /** @var mixed $payload */
             $payload = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException $exception) {
             throw new MessageDecodingFailedException(
-                sprintf('Could not decode message "%s".', $type),
-                0,
-                $exception,
+                sprintf('Could not decode message "%s".', $type), 0, $exception,
             );
         }
 
-        if (!\is_array($payload)) {
+        if (!is_array($payload)) {
             throw new MessageDecodingFailedException('Message payload must decode to an object.');
         }
 
@@ -64,68 +66,73 @@ final class EventMessageSerializer implements SerializerInterface
             $body = json_encode($this->normalizeMessage($message), JSON_THROW_ON_ERROR);
         } catch (JsonException $exception) {
             throw new MessageDecodingFailedException(
-                sprintf('Could not encode message "%s".', $message::class),
-                0,
-                $exception,
+                sprintf('Could not encode message "%s".', $message::class), 0, $exception,
             );
         }
 
         return [
-            'body' => $body,
+            'body'    => $body,
             'headers' => [
-                'type' => $message::class,
+                'type'         => $message::class,
                 'Content-Type' => 'application/json',
             ],
         ];
     }
 
     /**
+     * @throws Exception
+     *
      * @param array<string, mixed> $payload
      */
     private function denormalizeProductUpdatedMessage(array $payload): ProductUpdatedMessage
     {
-        return ProductUpdatedMessage::fromPayload(
+        return new ProductUpdatedMessage(
+            $this->optionalString($payload, 'eventId') ?? Uuid::v7()->toRfc4122(),
+            $this->optionalString($payload, 'type') ?? RabbitMQServiceInterface::MESSAGE_TYPE_PRODUCT_UPDATED,
+            $this->optionalDateTime($payload, 'createdAt') ?? new DateTimeImmutable(),
             $this->requireString($payload, 'id'),
             $this->requireString($payload, 'name'),
             $this->requireFloat($payload, 'price'),
             $this->requireInt($payload, 'quantity'),
             $this->optionalInt($payload, 'version') ?? 1,
-            $this->optionalString($payload, 'eventId') ?? Uuid::v7()->toRfc4122(),
-            $this->optionalString($payload, 'type') ?? ProductUpdatedMessage::TYPE,
-            $this->optionalDateTime($payload, 'createdAt') ?? new DateTimeImmutable(),
         );
     }
 
     /**
+     * @throws Exception
+     *
      * @param array<string, mixed> $payload
      */
     private function denormalizeOrderCreatedMessage(array $payload): OrderCreatedMessage
     {
-        return OrderCreatedMessage::fromPayload(
-            $this->optionalString($payload, 'orderId') ?? $this->optionalString($payload, 'eventId') ?? Uuid::v7()->toRfc4122(),
+        return new OrderCreatedMessage(
+            $this->optionalString($payload, 'eventId') ?? Uuid::v7()->toRfc4122(),
+            $this->optionalString($payload, 'type') ?? RabbitMQServiceInterface::MESSAGE_TYPE_ORDER_CREATED,
+            $this->optionalDateTime($payload, 'createdAt') ?? new DateTimeImmutable(),
+            $this->optionalString($payload, 'orderId') ??
+            $this->optionalString($payload, 'eventId') ?? Uuid::v7()->toRfc4122(),
             $this->requireString($payload, 'productId'),
             $this->optionalInt($payload, 'quantityOrdered') ?? $this->requireInt($payload, 'quantity'),
             $this->optionalInt($payload, 'expectedProductVersion') ?? 1,
-            $this->optionalString($payload, 'eventId') ?? Uuid::v7()->toRfc4122(),
-            $this->optionalString($payload, 'type') ?? OrderCreatedMessage::TYPE,
-            $this->optionalDateTime($payload, 'createdAt') ?? new DateTimeImmutable(),
         );
     }
 
     /**
+     * @throws Exception
+     *
      * @param array<string, mixed> $payload
      */
     private function denormalizeOrderProcessingStatusMessage(array $payload): OrderProcessingStatusMessage
     {
-        return OrderProcessingStatusMessage::fromPayload(
+        return new OrderProcessingStatusMessage(
+            $this->optionalString($payload, 'eventId') ?? Uuid::v7()->toRfc4122(),
+            $this->optionalString($payload, 'type') ?? RabbitMQServiceInterface::MESSAGE_TYPE_ORDER_PROCESSING_STATUS,
+            $this->optionalDateTime($payload, 'createdAt') ?? new DateTimeImmutable(),
             $this->optionalString($payload, 'orderId') ?? $this->requireString($payload, 'orderEventId'),
             $this->requireString($payload, 'orderEventId'),
             $this->requireString($payload, 'productId'),
             $this->requireString($payload, 'status'),
             $this->optionalString($payload, 'error'),
-            $this->optionalString($payload, 'eventId') ?? Uuid::v7()->toRfc4122(),
-            $this->optionalString($payload, 'type') ?? OrderProcessingStatusMessage::TYPE,
-            $this->optionalDateTime($payload, 'createdAt') ?? new DateTimeImmutable(),
         );
     }
 
@@ -136,33 +143,33 @@ final class EventMessageSerializer implements SerializerInterface
     {
         return match (true) {
             $message instanceof ProductUpdatedMessage => [
-                'eventId' => $message->eventId,
-                'type' => $message->type,
+                'eventId'   => $message->eventId,
+                'type'      => $message->type,
                 'createdAt' => $message->createdAt->format(DATE_ATOM),
-                'id' => $message->id,
-                'name' => $message->name,
-                'price' => $message->price,
-                'quantity' => $message->quantity,
-                'version' => $message->version,
+                'id'        => $message->id,
+                'name'      => $message->name,
+                'price'     => $message->price,
+                'quantity'  => $message->quantity,
+                'version'   => $message->version,
             ],
             $message instanceof OrderCreatedMessage => [
-                'eventId' => $message->eventId,
-                'type' => $message->type,
-                'createdAt' => $message->createdAt->format(DATE_ATOM),
-                'orderId' => $message->orderId,
-                'productId' => $message->productId,
-                'quantityOrdered' => $message->quantityOrdered,
+                'eventId'                => $message->eventId,
+                'type'                   => $message->type,
+                'createdAt'              => $message->createdAt->format(DATE_ATOM),
+                'orderId'                => $message->orderId,
+                'productId'              => $message->productId,
+                'quantityOrdered'        => $message->quantityOrdered,
                 'expectedProductVersion' => $message->expectedProductVersion,
             ],
             $message instanceof OrderProcessingStatusMessage => [
-                'eventId' => $message->eventId,
-                'type' => $message->type,
-                'createdAt' => $message->createdAt->format(DATE_ATOM),
-                'orderId' => $message->orderId,
+                'eventId'      => $message->eventId,
+                'type'         => $message->type,
+                'createdAt'    => $message->createdAt->format(DATE_ATOM),
+                'orderId'      => $message->orderId,
                 'orderEventId' => $message->orderEventId,
-                'productId' => $message->productId,
-                'status' => $message->status,
-                'error' => $message->error,
+                'productId'    => $message->productId,
+                'status'       => $message->status,
+                'error'        => $message->error,
             ],
             default => throw new MessageDecodingFailedException(
                 sprintf('Unsupported message class "%s".', $message::class),
@@ -175,7 +182,7 @@ final class EventMessageSerializer implements SerializerInterface
      */
     private function requireString(array $payload, string $field): string
     {
-        if (!isset($payload[$field]) || !\is_string($payload[$field])) {
+        if (!isset($payload[$field]) || !is_string($payload[$field])) {
             throw new MessageDecodingFailedException(sprintf('Field "%s" must be a string.', $field));
         }
 
@@ -184,22 +191,26 @@ final class EventMessageSerializer implements SerializerInterface
 
     /**
      * @param array<string, mixed> $payload
+     *
+     * @noinspection PhpSameParameterValueInspection
      */
     private function requireFloat(array $payload, string $field): float
     {
-        if (!isset($payload[$field]) || (!\is_float($payload[$field]) && !\is_int($payload[$field]))) {
+        if (!isset($payload[$field]) || (!is_float($payload[$field]) && !is_int($payload[$field]))) {
             throw new MessageDecodingFailedException(sprintf('Field "%s" must be numeric.', $field));
         }
 
-        return (float) $payload[$field];
+        return (float)$payload[$field];
     }
 
     /**
      * @param array<string, mixed> $payload
+     *
+     * @noinspection PhpSameParameterValueInspection
      */
     private function requireInt(array $payload, string $field): int
     {
-        if (!isset($payload[$field]) || !\is_int($payload[$field])) {
+        if (!isset($payload[$field]) || !is_int($payload[$field])) {
             throw new MessageDecodingFailedException(sprintf('Field "%s" must be an integer.', $field));
         }
 
@@ -213,7 +224,7 @@ final class EventMessageSerializer implements SerializerInterface
     {
         $value = $payload[$field] ?? null;
 
-        return \is_string($value) ? $value : null;
+        return is_string($value) ? $value : null;
     }
 
     /**
@@ -223,11 +234,15 @@ final class EventMessageSerializer implements SerializerInterface
     {
         $value = $payload[$field] ?? null;
 
-        return \is_int($value) ? $value : null;
+        return is_int($value) ? $value : null;
     }
 
     /**
+     * @throws Exception
+     *
      * @param array<string, mixed> $payload
+     *
+     * @noinspection PhpSameParameterValueInspection
      */
     private function optionalDateTime(array $payload, string $field): ?DateTimeImmutable
     {

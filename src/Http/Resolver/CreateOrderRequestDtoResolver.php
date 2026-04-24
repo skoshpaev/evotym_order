@@ -8,7 +8,7 @@ use App\Dto\CreateOrderPayloadDto;
 use App\Dto\CreateOrderRequestDto;
 use App\Exception\ApiValidationException;
 use App\Repository\ProductRepository;
-use JsonException;
+use Symfony\Component\HttpFoundation\Exception\JsonException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Controller\ValueResolverInterface;
 use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
@@ -48,7 +48,7 @@ final class CreateOrderRequestDtoResolver implements ValueResolverInterface
         $payloadDto = new CreateOrderPayloadDto($productId, trim($customerName), $quantityOrdered);
         $violations = $this->validator->validate($payloadDto);
 
-        if (\count($violations) > 0) {
+        if (count($violations) > 0) {
             throw ApiValidationException::fromViolations($violations);
         }
 
@@ -64,7 +64,7 @@ final class CreateOrderRequestDtoResolver implements ValueResolverInterface
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param array<string, mixed>        $payload
      * @param array<string, list<string>> $errors
      */
     private function extractString(array $payload, string $field, array &$errors): string
@@ -75,7 +75,7 @@ final class CreateOrderRequestDtoResolver implements ValueResolverInterface
             return '';
         }
 
-        if (!\is_string($payload[$field])) {
+        if (!is_string($payload[$field])) {
             $errors[$field][] = 'This field must be a string.';
 
             return '';
@@ -85,8 +85,10 @@ final class CreateOrderRequestDtoResolver implements ValueResolverInterface
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param array<string, mixed>        $payload
      * @param array<string, list<string>> $errors
+     *
+     * @noinspection PhpSameParameterValueInspection
      */
     private function extractInteger(array $payload, string $field, array &$errors): int
     {
@@ -96,7 +98,7 @@ final class CreateOrderRequestDtoResolver implements ValueResolverInterface
             return 0;
         }
 
-        if (!\is_int($payload[$field])) {
+        if (!is_int($payload[$field])) {
             $errors[$field][] = 'This field must be an integer.';
 
             return 0;
