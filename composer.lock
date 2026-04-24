@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b948db1813e393dec0f445de28d282e5",
+    "content-hash": "95c968e2a0edca031e70febb8fd54040",
     "packages": [
         {
             "name": "doctrine/collections",
@@ -1368,6 +1368,49 @@
                 "source": "https://github.com/php-fig/log/tree/3.0.2"
             },
             "time": "2024-09-11T13:17:53+00:00"
+        },
+        {
+            "name": "skoshpaev/evotym-shared",
+            "version": "dev-shared-24-04-2026-08-32-32",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/skoshpaev/evotym_shared.git",
+                "reference": "be1d230691f38fae94a7738b20ae99e53ba876c3"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/skoshpaev/evotym_shared/zipball/be1d230691f38fae94a7738b20ae99e53ba876c3",
+                "reference": "be1d230691f38fae94a7738b20ae99e53ba876c3",
+                "shasum": ""
+            },
+            "require": {
+                "doctrine/orm": "^3.0",
+                "php": "^8.1",
+                "symfony/config": "^6.4",
+                "symfony/dependency-injection": "^6.4",
+                "symfony/framework-bundle": "^6.4",
+                "symfony/http-kernel": "^6.4"
+            },
+            "type": "symfony-bundle",
+            "extra": {
+                "symfony": {
+                    "bundle": "Evotym\\SharedBundle\\EvotymSharedBundle"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Evotym\\SharedBundle\\": "src/"
+                }
+            },
+            "license": [
+                "proprietary"
+            ],
+            "description": "Shared Symfony bundle for Evotym services",
+            "support": {
+                "source": "https://github.com/skoshpaev/evotym_shared/tree/shared-24-04-2026-08-32-32",
+                "issues": "https://github.com/skoshpaev/evotym_shared/issues"
+            },
+            "time": "2026-04-24T07:17:10+00:00"
         },
         {
             "name": "symfony/amqp-messenger",
@@ -6297,7 +6340,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "skoshpaev/evotym-shared": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {

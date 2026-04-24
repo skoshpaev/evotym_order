@@ -6,6 +6,7 @@ namespace App\Tests\Integration\Service;
 
 use App\Message\OrderCreatedMessage;
 use App\Message\ProductUpdatedMessage;
+use App\Repository\InboxMessageRepository;
 use App\Repository\OutboxMessageRepository;
 use App\Repository\ProductRepository;
 use App\Service\RabbitMQServiceInterface;
@@ -50,11 +51,13 @@ final class RabbitMQServiceIntegrationTest extends DatabaseKernelTestCase
     {
         $service = static::getContainer()->get(RabbitMQServiceInterface::class);
         $repository = static::getContainer()->get(ProductRepository::class);
+        $inboxRepository = static::getContainer()->get(InboxMessageRepository::class);
 
         \assert($service instanceof RabbitMQServiceInterface);
         \assert($repository instanceof ProductRepository);
+        \assert($inboxRepository instanceof InboxMessageRepository);
 
-        $service->productUpdated(ProductUpdatedMessage::fromPayload(
+        $message = ProductUpdatedMessage::fromPayload(
             '019db9fd-5141-783b-804e-3f3d8ab184e7',
             'Coffee Mug',
             12.99,
@@ -63,23 +66,30 @@ final class RabbitMQServiceIntegrationTest extends DatabaseKernelTestCase
             '019db9fd-a933-785a-9485-247a36155e3f',
             ProductUpdatedMessage::TYPE,
             new \DateTimeImmutable('2026-04-23T10:58:22+00:00'),
-        ));
+        );
+
+        $service->productUpdated($message);
 
         $product = $repository->find('019db9fd-5141-783b-804e-3f3d8ab184e7');
+        $inboxMessage = $inboxRepository->find($message->eventId);
 
         self::assertNotNull($product);
         self::assertSame('Coffee Mug', $product->getName());
         self::assertSame(5, $product->getQuantity());
         self::assertSame(2, $product->getVersion());
+        self::assertNotNull($inboxMessage);
+        self::assertSame('processed', $inboxMessage->getStatus());
     }
 
     public function testProductUpdatedIgnoresStaleMessages(): void
     {
         $service = static::getContainer()->get(RabbitMQServiceInterface::class);
         $repository = static::getContainer()->get(ProductRepository::class);
+        $inboxRepository = static::getContainer()->get(InboxMessageRepository::class);
 
         \assert($service instanceof RabbitMQServiceInterface);
         \assert($repository instanceof ProductRepository);
+        \assert($inboxRepository instanceof InboxMessageRepository);
 
         $service->productUpdated(ProductUpdatedMessage::fromPayload(
             '019db9fd-5141-783b-804e-3f3d8ab184e7',
@@ -104,10 +114,46 @@ final class RabbitMQServiceIntegrationTest extends DatabaseKernelTestCase
         ));
 
         $product = $repository->find('019db9fd-5141-783b-804e-3f3d8ab184e7');
+        $inboxMessage = $inboxRepository->find('019db9fd-bbbb-785a-9485-247a36155e3f');
 
         self::assertNotNull($product);
         self::assertSame('Coffee Mug', $product->getName());
         self::assertSame(5, $product->getQuantity());
         self::assertSame(2, $product->getVersion());
+        self::assertNotNull($inboxMessage);
+        self::assertSame('ignored', $inboxMessage->getStatus());
+    }
+
+    public function testProductUpdatedIgnoresDuplicateEventId(): void
+    {
+        $service = static::getContainer()->get(RabbitMQServiceInterface::class);
+        $repository = static::getContainer()->get(ProductRepository::class);
+        $inboxRepository = static::getContainer()->get(InboxMessageRepository::class);
+
+        \assert($service instanceof RabbitMQServiceInterface);
+        \assert($repository instanceof ProductRepository);
+        \assert($inboxRepository instanceof InboxMessageRepository);
+
+        $message = ProductUpdatedMessage::fromPayload(
+            '019db9fd-5141-783b-804e-3f3d8ab184e7',
+            'Coffee Mug',
+            12.99,
+            5,
+            2,
+            '019db9fd-cccc-785a-9485-247a36155e3f',
+            ProductUpdatedMessage::TYPE,
+            new \DateTimeImmutable('2026-04-23T10:58:22+00:00'),
+        );
+
+        $service->productUpdated($message);
+        $service->productUpdated($message);
+
+        $product = $repository->find('019db9fd-5141-783b-804e-3f3d8ab184e7');
+        $inboxMessages = $inboxRepository->findAll();
+
+        self::assertNotNull($product);
+        self::assertSame(5, $product->getQuantity());
+        self::assertCount(1, $inboxMessages);
+        self::assertSame($message->eventId, $inboxMessages[0]->getEventId());
     }
 }

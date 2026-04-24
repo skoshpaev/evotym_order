@@ -14,11 +14,11 @@ framework:
                     auto_setup: true
                     confirm_timeout: 2
                     exchange:
-                        name: product.events
-                        type: direct
+                        name: '%evotym_shared.rabbitmq.product_exchange%'
+                        type: '%evotym_shared.rabbitmq.product_exchange_type%'
                     queues:
-                        product.updated:
-                            binding_keys: ['product.updated']
+                        '%evotym_shared.rabbitmq.order_product_sync_queue%':
+                            binding_keys: ['%evotym_shared.rabbitmq.product_updated_routing_key%']
 
             order_processing_status:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
