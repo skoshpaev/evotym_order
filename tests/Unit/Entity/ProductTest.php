@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Entity;
 
 use App\Entity\Product;
+use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 
 final class ProductTest extends TestCase
@@ -28,7 +29,7 @@ final class ProductTest extends TestCase
     public function testLastProductEventAtCanBeUpdated(): void
     {
         $product = new Product();
-        $createdAt = new \DateTimeImmutable('2026-04-24T10:00:00+00:00');
+        $createdAt = new DateTimeImmutable('2026-04-24T10:00:00+00:00');
 
         $product->setLastProductEventAt($createdAt);
 

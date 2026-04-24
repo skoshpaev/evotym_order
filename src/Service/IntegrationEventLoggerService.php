@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Api\IntegrationEventLoggerServiceIntrerface;
+use App\Service\Api\IntegrationEventLoggerServiceInterface;
 use JsonException;
 
-final class IntegrationEventLoggerService implements IntegrationEventLoggerServiceIntrerface
+final class IntegrationEventLoggerService implements IntegrationEventLoggerServiceInterface
 {
     /**
      * @param array<string, scalar|null> $context

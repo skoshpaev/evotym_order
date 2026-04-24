@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\Service;
 
-use App\Api\OrderServiceIntrerface;
 use App\Entity\Order;
 use App\Entity\Product;
 use App\Message\OrderCreatedMessage;
 use App\Repository\OrderRepository;
 use App\Repository\OutboxMessageRepository;
 use App\Repository\ProductRepository;
+use App\Service\Api\OrderServiceInterface;
 use App\Tests\Integration\DatabaseKernelTestCase;
 
 final class OrderServiceIntegrationTest extends DatabaseKernelTestCase
@@ -32,13 +32,13 @@ final class OrderServiceIntegrationTest extends DatabaseKernelTestCase
         $this->entityManager->persist($product);
         $this->entityManager->flush();
 
-        $service = static::getContainer()->get(OrderServiceIntrerface::class);
+        $service = static::getContainer()->get(OrderServiceInterface::class);
         $orderRepository = static::getContainer()->get(OrderRepository::class);
         $outboxRepository = static::getContainer()->get(OutboxMessageRepository::class);
         $productRepository = static::getContainer()->get(ProductRepository::class);
         $transport = $this->getTransport('order_created');
 
-        \assert($service instanceof OrderServiceIntrerface);
+        \assert($service instanceof OrderServiceInterface);
         \assert($orderRepository instanceof OrderRepository);
         \assert($outboxRepository instanceof OutboxMessageRepository);
         \assert($productRepository instanceof ProductRepository);
@@ -51,7 +51,7 @@ final class OrderServiceIntegrationTest extends DatabaseKernelTestCase
 
         self::assertNotNull($storedOrder);
         self::assertInstanceOf(Order::class, $storedOrder);
-        self::assertSame(OrderServiceIntrerface::STATUS_PROCESSING, $storedOrder->getOrderStatus());
+        self::assertSame(OrderServiceInterface::STATUS_PROCESSING, $storedOrder->getOrderStatus());
         self::assertSame(5, $storedProduct?->getQuantity());
         self::assertCount(1, $sentMessages);
         self::assertCount(1, $outboxRepository->findAll());

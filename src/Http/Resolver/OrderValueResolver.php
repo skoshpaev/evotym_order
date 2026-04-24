@@ -26,7 +26,7 @@ final class OrderValueResolver implements ValueResolverInterface
 
         $id = $request->attributes->get('id');
 
-        if (!\is_string($id) || !Uuid::isValid($id)) {
+        if (!is_string($id) || !Uuid::isValid($id)) {
             throw new NotFoundHttpException('Order not found.');
         }
 

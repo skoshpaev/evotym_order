@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Dto;
 
-use App\Api\OrderServiceIntrerface;
+use App\Service\Api\OrderServiceInterface;
 use Symfony\Component\Validator\Constraints as Assert;
 
 final class CreateOrderPayloadDto
@@ -14,7 +14,7 @@ final class CreateOrderPayloadDto
         #[Assert\Uuid]
         public readonly string $productId,
         #[Assert\NotBlank]
-        #[Assert\Length(max: OrderServiceIntrerface::CUSTOMER_NAME_MAX_LENGTH)]
+        #[Assert\Length(max: OrderServiceInterface::CUSTOMER_NAME_MAX_LENGTH)]
         public readonly string $customerName,
         #[Assert\Positive]
         public readonly int $quantityOrdered,

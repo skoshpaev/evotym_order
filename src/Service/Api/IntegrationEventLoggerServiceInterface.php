@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Api;
+namespace App\Service\Api;
 
-interface IntegrationEventLoggerServiceIntrerface
+interface IntegrationEventLoggerServiceInterface
 {
     /**
      * @param array<string, scalar|null> $context

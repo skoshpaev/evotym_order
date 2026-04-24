@@ -16,11 +16,11 @@ services:
     App\:
         resource: '../src/'
         exclude:
-            - '../src/Api/'
             - '../src/Controller/'
             - '../src/DependencyInjection/'
             - '../src/Entity/'
             - '../src/Kernel.php'
+            - '../src/Service/Api/'
 
     App\Controller\:
         resource: '../src/Controller/'
@@ -35,16 +35,16 @@ services:
         tags:
             - { name: controller.argument_value_resolver, priority: 200 }
 
-    App\Api\OrderServiceIntrerface:
+    App\Service\Api\OrderServiceIntrerface:
         alias: App\Service\OrderService
 
-    App\Api\RabbitMQServiceIntrerface:
+    App\Service\Api\RabbitMQServiceIntrerface:
         alias: App\Service\RabbitMQService
 
-    App\Api\IntegrationEventLoggerServiceIntrerface:
+    App\Service\Api\IntegrationEventLoggerServiceIntrerface:
         alias: App\Service\IntegrationEventLoggerService
 
-    App\Api\PoisonMessageRecorderServiceIntrerface:
+    App\Service\Api\PoisonMessageRecorderServiceIntrerface:
         alias: App\Service\PoisonMessageRecorderService
 
     # add more service definitions when explicit configuration is needed

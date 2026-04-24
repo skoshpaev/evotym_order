@@ -1,4 +1,5 @@
 <?php
+/** @noinspection PhpUnused */
 
 declare(strict_types=1);
 
@@ -13,10 +14,6 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'inbox')]
 final class InboxMessage
 {
-    public const STATUS_PROCESSED = 'processed';
-    public const STATUS_FAILED = 'failed';
-    public const STATUS_IGNORED = 'ignored';
-
     #[ORM\Id]
     #[ORM\Column(name: 'event_id', type: Types::STRING, length: 36, unique: true)]
     private string $eventId;
@@ -37,62 +34,14 @@ final class InboxMessage
     #[ORM\Column(name: 'created_at', type: Types::DATETIME_IMMUTABLE)]
     private DateTimeImmutable $createdAt;
 
-    /**
-     * @param array<string, scalar|null> $event
-     */
-    private function __construct(
-        string $eventId,
-        array $event,
-        ?string $productId,
-        string $eventType,
-        string $status,
-        DateTimeImmutable $createdAt,
-    ) {
-        $this->eventId = $eventId;
-        $this->event = $event;
-        $this->productId = $productId;
-        $this->eventType = $eventType;
-        $this->status = $status;
-        $this->createdAt = $createdAt;
-    }
-
-    /**
-     * @param array<string, scalar|null> $event
-     */
-    public static function create(
-        string $eventId,
-        array $event,
-        ?string $productId,
-        string $eventType,
-        string $status,
-        DateTimeImmutable $createdAt,
-    ): self {
-        return new self($eventId, $event, $productId, $eventType, $status, $createdAt);
-    }
-
     public function getEventId(): string
     {
         return $this->eventId;
     }
 
-    public function getProductId(): ?string
+    public function setEventId(string $eventId): void
     {
-        return $this->productId;
-    }
-
-    public function getEventType(): string
-    {
-        return $this->eventType;
-    }
-
-    public function getStatus(): string
-    {
-        return $this->status;
-    }
-
-    public function getCreatedAt(): DateTimeImmutable
-    {
-        return $this->createdAt;
+        $this->eventId = $eventId;
     }
 
     /**
@@ -101,5 +50,53 @@ final class InboxMessage
     public function getEvent(): array
     {
         return $this->event;
+    }
+
+    /**
+     * @param array<string, scalar|null> $event
+     */
+    public function setEvent(array $event): void
+    {
+        $this->event = $event;
+    }
+
+    public function getProductId(): ?string
+    {
+        return $this->productId;
+    }
+
+    public function setProductId(?string $productId): void
+    {
+        $this->productId = $productId;
+    }
+
+    public function getEventType(): string
+    {
+        return $this->eventType;
+    }
+
+    public function setEventType(string $eventType): void
+    {
+        $this->eventType = $eventType;
+    }
+
+    public function getStatus(): string
+    {
+        return $this->status;
+    }
+
+    public function setStatus(string $status): void
+    {
+        $this->status = $status;
+    }
+
+    public function getCreatedAt(): DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(DateTimeImmutable $createdAt): void
+    {
+        $this->createdAt = $createdAt;
     }
 }

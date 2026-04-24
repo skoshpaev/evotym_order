@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Api;
+namespace App\Service\Api;
 
 use App\Dto\CreateOrderRequestDto;
 use App\Entity\Order;
 
-interface OrderServiceIntrerface
+interface OrderServiceInterface
 {
     public const CUSTOMER_NAME_MAX_LENGTH = 255;
 
@@ -16,4 +16,6 @@ interface OrderServiceIntrerface
     public const STATUS_FAILED = 'Failed';
 
     public function create(CreateOrderRequestDto $createOrderRequestDto): Order;
+
+    public function convertToArray(Order $order);
 }

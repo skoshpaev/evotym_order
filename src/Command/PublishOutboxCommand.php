@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
-use App\Api\RabbitMQServiceIntrerface;
+use App\Service\Api\RabbitMQServiceInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -15,7 +15,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 final class PublishOutboxCommand extends Command
 {
     public function __construct(
-        private readonly RabbitMQServiceIntrerface $rabbitMQService,
+        private readonly RabbitMQServiceInterface $rabbitMQService,
     ) {
         parent::__construct();
     }

@@ -6,6 +6,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\OutboxMessage;
+use App\Service\Api\RabbitMQServiceInterface;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -27,7 +28,7 @@ final class OutboxMessageRepository extends ServiceEntityRepository
         /** @var list<OutboxMessage> $messages */
         $messages = $this->createQueryBuilder('outbox')->andWhere('outbox.status = :status')->setParameter(
                 'status',
-                OutboxMessage::STATUS_CREATED
+                RabbitMQServiceInterface::OUTBOX_STATUS_CREATED
             )->orderBy('outbox.createdAt', 'ASC')->setMaxResults($limit)->getQuery()->getResult();
 
         return $messages;

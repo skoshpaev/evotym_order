@@ -1,11 +1,12 @@
 <?php
+/** @noinspection PhpUnused */
 
 declare(strict_types=1);
 
 namespace App\Entity;
 
-use App\Api\OrderServiceIntrerface;
 use App\Repository\OrderRepository;
+use App\Service\Api\OrderServiceInterface;
 use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -22,7 +23,7 @@ class Order
     #[ORM\JoinColumn(name: 'product_id', referencedColumnName: 'id', nullable: false, onDelete: 'RESTRICT')]
     private Product $product;
 
-    #[ORM\Column(name: 'customer_name', length: OrderServiceIntrerface::CUSTOMER_NAME_MAX_LENGTH)]
+    #[ORM\Column(name: 'customer_name', length: OrderServiceInterface::CUSTOMER_NAME_MAX_LENGTH)]
     private string $customerName;
 
     #[ORM\Column(name: 'quantity_ordered')]

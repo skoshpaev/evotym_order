@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Service;
 
-use App\Api\OrderServiceIntrerface;
-use App\Api\RabbitMQServiceIntrerface;
 use App\Dto\CreateOrderRequestDto;
 use App\Entity\Order;
 use App\Entity\Product;
 use App\Message\OrderCreatedMessage;
+use App\Service\Api\OrderServiceInterface;
+use App\Service\Api\RabbitMQServiceInterface;
 use App\Service\OrderService;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
@@ -19,7 +19,7 @@ final class OrderServiceTest extends TestCase
     public function testCreatePersistsOrderAndDispatchesReservationRequestWithProductVersion(): void
     {
         $entityManager = $this->createMock(EntityManagerInterface::class);
-        $rabbitMqService = $this->createMock(RabbitMQServiceIntrerface::class);
+        $rabbitMqService = $this->createMock(RabbitMQServiceInterface::class);
         $service = new OrderService($entityManager, $rabbitMqService);
         $product = $this->createProduct(
             '019db9fd-5141-783b-804e-3f3d8ab184e7',
@@ -33,42 +33,36 @@ final class OrderServiceTest extends TestCase
 
         $persistedOrder = null;
 
-        $entityManager
-            ->expects(self::once())
-            ->method('persist')
-            ->with(self::callback(static function (object $entity) use (&$persistedOrder): bool {
-                $persistedOrder = $entity;
+        $entityManager->expects(self::once())->method('persist')->with(
+                self::callback(static function (object $entity) use (&$persistedOrder): bool {
+                    $persistedOrder = $entity;
 
-                return $entity instanceof Order;
-            }));
+                    return $entity instanceof Order;
+                })
+            );
 
         $entityManager->expects(self::once())->method('flush');
 
-        $rabbitMqService
-            ->expects(self::once())
-            ->method('orderCreated')
-            ->with(self::callback(static function (OrderCreatedMessage $message) use ($product, &$persistedOrder): bool {
-                return $persistedOrder instanceof Order
-                    && $message->orderId === $persistedOrder->getId()
-                    && $message->productId === $product->getId()
-                    && $message->quantityOrdered === 2
-                    && $message->expectedProductVersion === 4;
-            }))
-            ->willReturn($eventId);
+        $rabbitMqService->expects(self::once())->method('orderCreated')->with(
+                self::callback(static function (OrderCreatedMessage $message) use ($product, &$persistedOrder): bool {
+                    return $persistedOrder instanceof Order
+                        && $message->orderId === $persistedOrder->getId()
+                        && $message->productId === $product->getId()
+                        && $message->quantityOrdered === 2
+                        && $message->expectedProductVersion === 4;
+                })
+            )->willReturn($eventId);
 
-        $rabbitMqService
-            ->expects(self::once())
-            ->method('publishOutboxMessage')
-            ->with($eventId);
+        $rabbitMqService->expects(self::once())->method('publishOutboxMessage')->with($eventId);
 
         $order = $service->create($dto);
 
-        self::assertInstanceOf(Order::class, $order);
-        self::assertSame(OrderServiceIntrerface::STATUS_PROCESSING, $order->getOrderStatus());
+        self::assertSame(OrderServiceInterface::STATUS_PROCESSING, $order->getOrderStatus());
         self::assertSame('John Doe', $order->getCustomerName());
         self::assertSame(2, $order->getQuantityOrdered());
     }
 
+    /** @noinspection PhpSameParameterValueInspection */
     private function createProduct(string $id, string $name, float $price, int $quantity, int $version): Product
     {
         $product = new Product();
