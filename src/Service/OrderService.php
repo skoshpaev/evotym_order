@@ -11,6 +11,7 @@ use App\Service\Api\OrderServiceInterface;
 use App\Service\Api\RabbitMQServiceInterface;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Evotym\SharedBundle\Dto\ProductViewDto;
 use Symfony\Component\Uid\Uuid;
 
 final class OrderService implements OrderServiceInterface
@@ -52,17 +53,9 @@ final class OrderService implements OrderServiceInterface
 
     public function convertToArray(Order $order): array
     {
-        $product = $order->getProduct();
-        $productArray = [
-            'id'       => $product->getId(),
-            'name'     => $product->getName(),
-            'price'    => $product->getPrice(),
-            'quantity' => $product->getQuantity(),
-        ];
-
         return [
             'orderId'         => $order->getId(),
-            'product'         => $productArray,
+            'product'         => ProductViewDto::fromProduct($order->getProduct())->toArray(),
             'customerName'    => $order->getCustomerName(),
             'quantityOrdered' => $order->getQuantityOrdered(),
             'orderStatus'     => $order->getOrderStatus(),

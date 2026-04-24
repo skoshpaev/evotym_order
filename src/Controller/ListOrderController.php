@@ -14,13 +14,14 @@ final class ListOrderController
 {
     public function __construct(
         private readonly OrderServiceInterface $orderService,
+        private readonly OrderRepository $orderRepository,
     ) {
     }
 
-    public function __invoke(OrderRepository $orderRepository): JsonResponse
+    public function __invoke(): JsonResponse
     {
         $data = [];
-        foreach ($orderRepository->findAllOrderedByIdDesc() as $order) {
+        foreach ($this->orderRepository->findAllOrderedByIdDesc() as $order) {
             $data[] = $this->orderService->convertToArray($order);
         }
 

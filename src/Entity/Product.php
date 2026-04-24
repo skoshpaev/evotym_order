@@ -32,12 +32,12 @@ class Product extends AbstractProduct
 
     public function setPrice(float $price): void
     {
-        $this->price = number_format($price, 2, '.', '');
+        $this->price = self::normalizePrice($price);
     }
 
     public function setQuantity(int $quantity): void
     {
-        $this->quantity = $quantity;
+        $this->quantity = self::normalizeQuantity($quantity);
     }
 
     public function getVersion(): int

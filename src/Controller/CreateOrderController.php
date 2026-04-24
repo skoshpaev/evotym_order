@@ -20,7 +20,6 @@ final class CreateOrderController
 
     public function __invoke(
         CreateOrderRequestDto $createOrderRequestDto,
-        OrderServiceInterface $orderService,
     ): JsonResponse {
         $order = $this->orderService->create($createOrderRequestDto);
         $orderArray = $this->orderService->convertToArray($order);
