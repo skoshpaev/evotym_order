@@ -49,6 +49,9 @@
             "tests/bootstrap.php"
         ]
     },
+    "skoshpaev/evotym-shared": {
+        "version": "dev-shared-24-04-2026-08-32-32"
+    },
     "symfony/console": {
         "version": "6.4",
         "recipe": {

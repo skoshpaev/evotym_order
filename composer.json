@@ -10,6 +10,7 @@
         "doctrine/doctrine-bundle": "^2.18",
         "doctrine/doctrine-migrations-bundle": "^3.7",
         "doctrine/orm": "^3.6",
+        "skoshpaev/evotym-shared": "dev-shared-24-04-2026-08-32-32",
         "symfony/amqp-messenger": "6.4.*",
         "symfony/console": "6.4.*",
         "symfony/dotenv": "6.4.*",
@@ -30,6 +31,12 @@
         },
         "sort-packages": true
     },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/skoshpaev/evotym_shared.git"
+        }
+    ],
     "autoload": {
         "psr-4": {
             "App\\": "src/"
