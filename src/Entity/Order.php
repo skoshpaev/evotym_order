@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Repository\OrderRepository;
+use DateTimeImmutable;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 
@@ -33,6 +35,9 @@ class Order
 
     #[ORM\Column(name: 'order_status', length: 32)]
     private string $orderStatus;
+
+    #[ORM\Column(name: 'last_processing_status_event_at', type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?DateTimeImmutable $lastProcessingStatusEventAt = null;
 
     private function __construct(string $id, Product $product, string $customerName, int $quantityOrdered)
     {
@@ -81,5 +86,15 @@ class Order
     public function markFailed(): void
     {
         $this->orderStatus = self::STATUS_FAILED;
+    }
+
+    public function getLastProcessingStatusEventAt(): ?DateTimeImmutable
+    {
+        return $this->lastProcessingStatusEventAt;
+    }
+
+    public function markProcessingStatusEventProcessed(DateTimeImmutable $createdAt): void
+    {
+        $this->lastProcessingStatusEventAt = $createdAt;
     }
 }
